@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Server.Hubs;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -30,5 +31,6 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<LobbyHub>("/hubs/lobby");
 
 app.Run();

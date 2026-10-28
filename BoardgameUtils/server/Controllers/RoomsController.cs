@@ -61,7 +61,15 @@ public class RoomsController : ControllerBase
             Code = lobbyCode,
             GameType = "Default",
             State = "Lobby",
-            MaxPlayers = req.maxPlayerCount
+            MaxPlayers = req.maxPlayerCount,
+            Objectives = NemesisObjectiveCatalog.AllNemesisObjectives
+                 .Select(o => new PlayerObjective
+                    {
+                        Title = o.Title,
+                        Type = o.Type,
+                        MaxPlayers = o.MaxPlayers
+                    })
+                    .ToList()
         };
         _db.Rooms.Add(room);
         await _db.SaveChangesAsync();
@@ -88,8 +96,14 @@ public class RoomsController : ControllerBase
         {
             return NotFound("Room not found");
         }
-        var playerList = currentRoom.Players;
-        await _hub.Clients.Group(code).SendAsync("PlayersChanged");
-        return Ok(new { playerList });
+        var playerList = currentRoom.Players
+            .Select(p => new
+            {
+                id = p.Id,
+                nickname = p.Nickname
+            })
+            .ToList();
+
+        return Ok(playerList);
     }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import './App.css';
 import { loadRoomPlayerInfo } from './requests/joinRoom';
@@ -6,26 +6,35 @@ import { connection, connectToRoom } from "./signalr";
 
 function Room() {
   const [players, setPlayers] = useState<{ id: number; nickname: string }[]>([]);
-  const { currentLobbyCode } = useParams();
+  const latestRequest = useRef(0);
+  const { code  } = useParams();
 
-  const refresh = async () => {
-  const data = await loadRoomPlayerInfo(currentLobbyCode!);
-    setPlayers(data);
-  };
+  const refresh = useCallback(async () => {
+    if (!code) return;
+
+    const request = ++latestRequest.current;
+    const data = await loadRoomPlayerInfo(code);
+    if (request === latestRequest.current) {
+      setPlayers(data);
+    }
+  }, [code]);
 
   useEffect(() => {
-    connection.on("RoomChanged", refresh);
-    connectToRoom(currentLobbyCode!).then(refresh);
+    connection.on("PlayersChanged", refresh);
+    connectToRoom(code!).then(refresh);
 
     return () => {
-      connection.off("RoomChanged", refresh);
+      latestRequest.current++;
+      connection.off("PlayersChanged", refresh);
     };
-  }, []);
+  }, [code, refresh]);
 
   return (
     <>
         <input type="text" placeholder="Enter your name" />
-        <p> {players.length}</p>
+        {players.map(player => (
+          <li key={player.id}>{player.nickname}</li>
+        ))}
     </>
      
   )

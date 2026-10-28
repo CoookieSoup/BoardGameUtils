@@ -28,7 +28,6 @@ export const loadRoomPlayerInfo = async (code: string) => {
     method: "GET",
     headers: { "Content-Type": "application/json" },
   }); 
-  const data = await res.json();
   
-  return data;
+  return await res.json();;
 };

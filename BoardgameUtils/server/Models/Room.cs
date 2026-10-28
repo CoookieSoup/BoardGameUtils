@@ -10,4 +10,6 @@ public class Room
 
     public List<Player> Players { get; set; } = new();
     public int MaxPlayers { get; internal set; }
+
+    public List<PlayerObjective> Objectives { get; set; } = new();
 }
