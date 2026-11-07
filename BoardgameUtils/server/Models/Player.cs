@@ -7,7 +7,7 @@ public class Player
     public int RoomId { get; set; }
     public Room? Room { get; set; }
     public bool IsLobbyLeader { get; set; }
-    public PlayerObjective? Objective { get; set; }
+    public List<PlayerObjective> Objectives { get; set; } = new();
 
     public Player(string nickname, int roomId, bool isLobbyLeader = false)
     {

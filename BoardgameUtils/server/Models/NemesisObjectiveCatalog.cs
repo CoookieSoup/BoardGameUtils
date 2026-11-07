@@ -2,7 +2,7 @@ namespace Server.Models;
 public record NemesisObjectiveTemplate(
     string Title,
     int Type, // 1 = Cooperative, 2 = Selfish
-    int MaxPlayers
+    int MinPlayers
 );
 
 public static class NemesisObjectiveCatalog

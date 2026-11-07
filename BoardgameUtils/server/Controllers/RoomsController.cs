@@ -38,6 +38,10 @@ public class RoomsController : ControllerBase
             {
                 return ApiResponse.UserError("Room not found");
             }
+            if (room.State != "Lobby")
+            {
+                return ApiResponse.UserError("Game has already started");
+            }
             if (room.Players.Count >= room.MaxPlayers)
             {
                 return ApiResponse.UserError("Room is full");
@@ -56,7 +60,7 @@ public class RoomsController : ControllerBase
             {
                 playerId = player.Id,
                 roomCode = room.Code,
-                roomId = room.Id
+                roomId = room.Id,
             });
         }
         catch (Exception ex)
@@ -131,7 +135,7 @@ public class RoomsController : ControllerBase
         {
             var currentRoom = await _db.Rooms
                 .Include(r => r.Players)
-                    .ThenInclude(p => p.Objective)
+                    .ThenInclude(p => p.Objectives)
                 .FirstOrDefaultAsync(r => r.Code == code.ToUpper());
 
             if (currentRoom == null)
@@ -140,16 +144,20 @@ public class RoomsController : ControllerBase
             }
 
             var playerList = currentRoom.Players
-                .Select(p => new
+                .Select(p =>
                 {
-                    nickname = p.Nickname,
-                    objective = p.Objective == null ? null : new
+                    var chosen = p.Objectives.FirstOrDefault(o => o.IsChosen);
+                    return new
                     {
-                        id = p.Objective.Id,
-                        title = p.Objective.Title,
-                        type = p.Objective.Type,
-                        maxPlayers = p.Objective.MaxPlayers
-                    }
+                        nickname = p.Nickname,
+                        objective = chosen == null ? null : new
+                        {
+                            id = chosen.Id,
+                            title = chosen.Title,
+                            type = chosen.Type,
+                            minPlayers = chosen.MinPlayers
+                        }
+                    };
                 })
                 .ToList();
 
@@ -166,37 +174,22 @@ public class RoomsController : ControllerBase
     {
         try
         {
-            var player = await _db.Players
-                .Include(p => p.Objective)
-                .FirstOrDefaultAsync(p => p.Id == req.playerId);
+            var objectives = await _db.PlayerObjectives
+            .Where(o => o.PlayerId == req.playerId)
+            .ToListAsync();
 
-            if (player == null)
+            var chosenObjective = objectives.FirstOrDefault(o => o.Id == req.objectiveId);
+            if (chosenObjective == null)
             {
-                return ApiResponse.UserError("Player not found");
+                return ApiResponse.UserError("Objective not found");
             }
 
-            if (player.Objective == null)
-            {
-                player.Objective = new PlayerObjective
-                {
-                    RoomId = player.RoomId,
-                    PlayerId = player.Id
-                };
-            }
-
-            player.Objective.Title = req.objective.Title;
-            player.Objective.Type = req.objective.Type;
-            player.Objective.MaxPlayers = req.objective.MaxPlayers;
-
+            chosenObjective.IsChosen = true;
+            _db.PlayerObjectives.RemoveRange(objectives.Where(o => o != chosenObjective));
             await _db.SaveChangesAsync();
-            var room = await _db.Rooms.FindAsync(player.RoomId);
-            if (room == null)
-            {
-                return ApiResponse.UserError("Room not found");
-            }
-            await _hub.Clients.Group(room.Id.ToString()).SendAsync("PlayersChanged");
 
-            return ApiResponse.Success( new {} );
+            await _hub.Clients.Group(chosenObjective.RoomId.ToString()).SendAsync("PlayersChanged");
+            return ApiResponse.Success(new { });
         }
         catch (Exception ex)
         {
@@ -204,5 +197,5 @@ public class RoomsController : ControllerBase
         }
         
     }
-    public record SelectObjectiveRequest(int playerId, PlayerObjective objective);
+    public record SelectObjectiveRequest(int playerId, int objectiveId);
 }

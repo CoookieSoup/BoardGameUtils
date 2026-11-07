@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations.Schema;
-
 namespace Server.Models;
 
 
@@ -10,7 +8,8 @@ public class PlayerObjective
     public string Title { get; set; } = "";
     public int Type { get; set; }
 
-    public int MaxPlayers { get; set; }
+    public int MinPlayers { get; set; }
+    public bool IsChosen { get; set; }
 
     public int RoomId { get; set; }
     public Room? Room { get; set; }

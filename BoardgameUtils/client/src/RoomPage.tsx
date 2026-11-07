@@ -10,7 +10,7 @@ import './styling/objectiveCard.css';
 
 function Room() {
   const [players, setPlayers] = useState<PlayerInfoResponse[]>([]);
-  const [objectives, setObjectives] = useState<{ title: string; type: string }[]>([]);
+  const [objectives, setObjectives] = useState<{ id: number, title: string; type: string }[]>([]);
   const [hasStarted, setHasStarted] = useState(false);
   const roomId = Number(sessionStorage.getItem("roomId"));
   const playerId = Number(sessionStorage.getItem("playerId"));
@@ -55,7 +55,7 @@ function Room() {
             <div className="objective-card" key={index}>
                 <img src={objectiveImage} className="objective-frame" onClick={async () => {
                   console.log(`Player ${playerId} selected objective ${objective.title} in room ${roomId}`);
-                  await selectObjective(code, playerId, objective);
+                  await selectObjective(code, playerId, objective.id);
                   }}/>
                 <div className="objective-text">
                     <p>{objective.type == '1' ? "Cooperative" : "Solo"}</p>

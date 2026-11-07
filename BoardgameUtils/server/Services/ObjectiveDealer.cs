@@ -10,7 +10,7 @@ public static class ObjectiveDealer
             throw new ArgumentException("At least 2 players are required.");
 
         var eligible = NemesisObjectiveCatalog.AllNemesisObjectives
-            .Where(o => o.MaxPlayers <= players.Count)
+            .Where(o => o.MinPlayers <= players.Count)
             .ToList();
 
         var coop = eligible
@@ -37,7 +37,7 @@ public static class ObjectiveDealer
 
                 Title = coop[i].Title,
                 Type = coop[i].Type,
-                MaxPlayers = coop[i].MaxPlayers
+                MinPlayers = coop[i].MinPlayers
             });
 
             result.Add(new PlayerObjective
@@ -47,7 +47,7 @@ public static class ObjectiveDealer
 
                 Title = selfish[i].Title,
                 Type = selfish[i].Type,
-                MaxPlayers = selfish[i].MaxPlayers
+                MinPlayers = selfish[i].MinPlayers
             });
         }
 

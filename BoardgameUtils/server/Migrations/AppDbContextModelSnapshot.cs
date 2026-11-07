@@ -53,7 +53,10 @@ namespace Server.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("MaxPlayers")
+                    b.Property<bool>("IsChosen")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("MinPlayers")
                         .HasColumnType("integer");
 
                     b.Property<int>("PlayerId")
@@ -71,8 +74,7 @@ namespace Server.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PlayerId")
-                        .IsUnique();
+                    b.HasIndex("PlayerId");
 
                     b.HasIndex("RoomId");
 
@@ -124,8 +126,8 @@ namespace Server.Migrations
             modelBuilder.Entity("Server.Models.PlayerObjective", b =>
                 {
                     b.HasOne("Server.Models.Player", "Player")
-                        .WithOne("Objective")
-                        .HasForeignKey("Server.Models.PlayerObjective", "PlayerId")
+                        .WithMany("Objectives")
+                        .HasForeignKey("PlayerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -142,7 +144,7 @@ namespace Server.Migrations
 
             modelBuilder.Entity("Server.Models.Player", b =>
                 {
-                    b.Navigation("Objective");
+                    b.Navigation("Objectives");
                 });
 
             modelBuilder.Entity("Server.Models.Room", b =>

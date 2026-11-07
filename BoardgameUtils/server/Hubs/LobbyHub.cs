@@ -35,7 +35,7 @@ public class LobbyHub : Hub
 
         var objectives = ObjectiveDealer.Deal(room);
 
-        // _db.PlayerObjectives.AddRange(objectives);
+        _db.PlayerObjectives.AddRange(objectives);
         room.setState("Playing");
 
         await _db.SaveChangesAsync();
@@ -47,6 +47,7 @@ public class LobbyHub : Hub
                 .Where(o => o.PlayerId == player.Id)
                 .Select(o => new
                 {
+                    o.Id,
                     o.Title,
                     o.Type
                 })

@@ -1,5 +1,4 @@
 import toast from "react-hot-toast";
-import type { NemesisPlayerObjective } from "../types/nemesisTypes";
 
 const API = "http://localhost:5018";
 
@@ -81,13 +80,13 @@ export const loadRoomPlayerInfo = (code: string) => {
     );
 };
 
-export const selectObjective = (code: string, playerId: number, objective: NemesisPlayerObjective) => {
+export const selectObjective = (code: string, playerId: number, objectiveId: number) => {
     return apiRequest<PlayerInfoResponse[]>(
         `${API}/api/rooms/${code}/selectObjective`,
         {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ playerId, objective }),
+            body: JSON.stringify({ playerId, objectiveId }),
         },
         "Objective selected successfully!"
     );
