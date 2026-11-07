@@ -1,8 +1,7 @@
 namespace Server.Models;
-
 public record NemesisObjectiveTemplate(
     string Title,
-    string Type,
+    int Type, // 1 = Cooperative, 2 = Selfish
     int MaxPlayers
 );
 
@@ -10,20 +9,20 @@ public static class NemesisObjectiveCatalog
 {
     public static readonly List<NemesisObjectiveTemplate> AllNemesisObjectives = new()
     {
-        new("Išsiųsti signalą ir hibernuoti", "kooperatyvinis", 2),
-        new("Užtikrinti, kad laivas pasiektų Žemę", "kooperatyvinis", 2),
-        new("Užtikrinti, kad laivas pasiektų Marsą", "kooperatyvinis", 2),
-        new("Atrarsti įsibrovėlių silpnybes", "kooperatyvinis", 3),
-        new("Sunaikinti lizdą", "kooperatyvinis", 3),
-        new("Karalienė turi būti negyva", "kooperatyvinis", 4),
-        new("Kad kiekvienas kambarys būtų išieškotas", "kooperatyvinis", 5),
+        new("Išsiųsti signalą ir hibernuoti", 1, 2),
+        new("Užtikrinti, kad laivas pasiektų Žemę", 1, 2),
+        new("Užtikrinti, kad laivas pasiektų Marsą", 1, 2),
+        new("Atrasti įsibrovėlių silpnybes", 1, 3),
+        new("Sunaikinti lizdą", 1, 3),
+        new("Karalienė turi būti negyva", 1, 4),
+        new("Kad kiekvienas kambarys būtų išieškotas", 1, 5),
 
-        new("Žaidėjas 1 turi neišgyventi", "savanaudiškas", 2),
-        new("Žaidėjas 2 turi neišgyventi", "savanaudiškas", 2),
-        new("Žaidėjas 3 turi neišgyventi", "savanaudiškas", 3),
-        new("Žaidėjas 4 turi neišgyventi", "savanaudiškas", 4),
-        new("Žaidėjas 5 turi neišgyventi", "savanaudiškas", 5),
-        new("Laivas turi būti sunaikintas", "savanaudiškas", 2),
-        new("Išgyventi ir turėti 7 daiktus", "savanaudiškas", 3)
+        new("Žaidėjas 1 turi neišgyventi", 2, 2),
+        new("Žaidėjas 2 turi neišgyventi", 2, 2),
+        new("Žaidėjas 3 turi neišgyventi", 2, 3),
+        new("Žaidėjas 4 turi neišgyventi", 2, 4),
+        new("Žaidėjas 5 turi neišgyventi", 2, 5),
+        new("Laivas turi būti sunaikintas", 2, 2),
+        new("Išgyventi ir turėti 7 daiktus", 2, 3)
     };
 }

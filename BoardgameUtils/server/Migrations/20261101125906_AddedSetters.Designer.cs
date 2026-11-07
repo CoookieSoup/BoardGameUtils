@@ -10,8 +10,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Server.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261014135952_Migration2")]
-    partial class Migration2
+    [Migration("20261101125906_AddedSetters")]
+    partial class AddedSetters
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -23,33 +23,6 @@ namespace Server.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Server.Models.Objective", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("MinPlayers")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Text")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Objective");
-                });
-
             modelBuilder.Entity("Server.Models.Player", b =>
                 {
                     b.Property<int>("Id")
@@ -57,6 +30,9 @@ namespace Server.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsLobbyLeader")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Nickname")
                         .IsRequired()
@@ -80,7 +56,7 @@ namespace Server.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("ObjectiveId")
+                    b.Property<int>("MaxPlayers")
                         .HasColumnType("integer");
 
                     b.Property<int>("PlayerId")
@@ -89,9 +65,14 @@ namespace Server.Migrations
                     b.Property<int>("RoomId")
                         .HasColumnType("integer");
 
-                    b.HasKey("Id");
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
 
-                    b.HasIndex("ObjectiveId");
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
 
                     b.HasIndex("PlayerId");
 
@@ -144,12 +125,6 @@ namespace Server.Migrations
 
             modelBuilder.Entity("Server.Models.PlayerObjective", b =>
                 {
-                    b.HasOne("Server.Models.Objective", "Objective")
-                        .WithMany()
-                        .HasForeignKey("ObjectiveId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("Server.Models.Player", "Player")
                         .WithMany()
                         .HasForeignKey("PlayerId")
@@ -157,12 +132,10 @@ namespace Server.Migrations
                         .IsRequired();
 
                     b.HasOne("Server.Models.Room", "Room")
-                        .WithMany()
+                        .WithMany("Objectives")
                         .HasForeignKey("RoomId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Objective");
 
                     b.Navigation("Player");
 
@@ -171,6 +144,8 @@ namespace Server.Migrations
 
             modelBuilder.Entity("Server.Models.Room", b =>
                 {
+                    b.Navigation("Objectives");
+
                     b.Navigation("Players");
                 });
 #pragma warning restore 612, 618

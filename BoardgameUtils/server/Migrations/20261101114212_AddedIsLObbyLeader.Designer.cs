@@ -10,8 +10,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Server.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261011173836_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20261101114212_AddedIsLObbyLeader")]
+    partial class AddedIsLObbyLeader
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -30,6 +30,9 @@ namespace Server.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsLobbyLeader")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Nickname")
                         .IsRequired()
@@ -53,7 +56,7 @@ namespace Server.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("ObjectiveType")
+                    b.Property<int>("MaxPlayers")
                         .HasColumnType("integer");
 
                     b.Property<int>("PlayerId")
@@ -62,7 +65,18 @@ namespace Server.Migrations
                     b.Property<int>("RoomId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("PlayerId");
+
+                    b.HasIndex("RoomId");
 
                     b.ToTable("PlayerObjectives");
                 });
@@ -86,6 +100,9 @@ namespace Server.Migrations
                     b.Property<int>("HostPlayerId")
                         .HasColumnType("integer");
 
+                    b.Property<int>("MaxPlayers")
+                        .HasColumnType("integer");
+
                     b.Property<string>("State")
                         .IsRequired()
                         .HasColumnType("text");
@@ -106,8 +123,29 @@ namespace Server.Migrations
                     b.Navigation("Room");
                 });
 
+            modelBuilder.Entity("Server.Models.PlayerObjective", b =>
+                {
+                    b.HasOne("Server.Models.Player", "Player")
+                        .WithMany()
+                        .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Server.Models.Room", "Room")
+                        .WithMany("Objectives")
+                        .HasForeignKey("RoomId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Player");
+
+                    b.Navigation("Room");
+                });
+
             modelBuilder.Entity("Server.Models.Room", b =>
                 {
+                    b.Navigation("Objectives");
+
                     b.Navigation("Players");
                 });
 #pragma warning restore 612, 618

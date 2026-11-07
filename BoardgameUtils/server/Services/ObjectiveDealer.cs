@@ -1,36 +1,56 @@
-public enum ObjectiveType { Cooperative, Selfish }
-public record Objective(string Code, string Text, ObjectiveType Type, int MinPlayers);
+using Server.Models;
 
 public static class ObjectiveDealer
 {
-    public static List<(Guid PlayerId, Objective Coop, Objective Selfish)> Deal(
-        List<Guid> players, List<Objective> pool)
+    public static List<PlayerObjective> Deal(Room room)
     {
-        
+        var players = room.Players;
 
-        int playerCount = players.Count;
+        if (players.Count < 2)
+            throw new ArgumentException("At least 2 players are required.");
 
-        if (playerCount < 2)
+        var eligible = NemesisObjectiveCatalog.AllNemesisObjectives
+            .Where(o => o.MaxPlayers <= players.Count)
+            .ToList();
+
+        var coop = eligible
+            .Where(o => o.Type == 1)
+            .OrderBy(_ => Random.Shared.Next())
+            .ToList();
+
+        var selfish = eligible
+            .Where(o => o.Type == 2)
+            .OrderBy(_ => Random.Shared.Next())
+            .ToList();
+
+        if (coop.Count < players.Count || selfish.Count < players.Count)
+            throw new ArgumentException("Not enough objectives.");
+
+        var result = new List<PlayerObjective>();
+
+        for (int i = 0; i < players.Count; i++)
         {
-            throw new ArgumentException("At least 2 players are required to deal objectives."); //TODO padaryt kad kazka rodytu
+            result.Add(new PlayerObjective
+            {
+                PlayerId = players[i].Id,
+                RoomId = room.Id,
+
+                Title = coop[i].Title,
+                Type = coop[i].Type,
+                MaxPlayers = coop[i].MaxPlayers
+            });
+
+            result.Add(new PlayerObjective
+            {
+                PlayerId = players[i].Id,
+                RoomId = room.Id,
+
+                Title = selfish[i].Title,
+                Type = selfish[i].Type,
+                MaxPlayers = selfish[i].MaxPlayers
+            });
         }
 
-        var eligibleObjectives = pool.Where(o => o.MinPlayers <= playerCount).ToList();
-
-        List<Objective> shuffledCoopObjectives = eligibleObjectives.Where(o => o.Type == ObjectiveType.Cooperative).OrderBy(_ => Random.Shared.Next()).ToList();
-        List<Objective> shuffledSelfishObjectives = eligibleObjectives.Where(o => o.Type == ObjectiveType.Selfish).OrderBy(_ => Random.Shared.Next()).ToList();
-
-        if(shuffledCoopObjectives.Count < playerCount || shuffledSelfishObjectives.Count < playerCount)
-        {
-            throw new ArgumentException("Not enough objectives of each type to deal to all players."); //TODO padaryt kad kazka rodytu
-        }
-
-        var dealtObjectives = new List<(Guid PlayerId, Objective Coop, Objective Selfish)>();
-        for (int i = 0; i < playerCount; i++)
-        {
-            dealtObjectives.Add((players[i], shuffledCoopObjectives[i], shuffledSelfishObjectives[i]));
-        }
-
-        return dealtObjectives;
+        return result;
     }
 }

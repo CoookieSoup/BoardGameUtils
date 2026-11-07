@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './App.css'
+import TextInput from './components/inputs'
 import { createRoom, joinRoom } from './requests/joinRoom'
 
 function Home() {
@@ -9,60 +10,45 @@ function Home() {
   const [maxPlayerCount, setMaxPlayerCount] = useState(0)
   const navigate = useNavigate()
 
-  async function handleJoin(e: React.SubmitEvent<HTMLFormElement>) {
-    e.preventDefault()
+  async function handleRoom(e: React.SubmitEvent<HTMLFormElement>, isCreate: boolean) {
+    e.preventDefault();
 
-    if (!name.trim() || !roomCode.trim()) {
-      return
+    if (!name.trim() || (!isCreate && !roomCode.trim()) || (isCreate && !maxPlayerCount)) {
+        return;
     }
 
-    await joinRoom(roomCode.trim().toUpperCase(), name.trim())
-    navigate(`/room/${roomCode.trim().toUpperCase()}`);
-  }
+    const data = isCreate ? await createRoom(name.trim(), maxPlayerCount) : await joinRoom(roomCode.trim().toUpperCase(), name.trim());
 
-  async function handleCreate(e: React.SubmitEvent<HTMLFormElement>) {
-    e.preventDefault()
+    sessionStorage.setItem("roomId", String(data.roomId));
+    sessionStorage.setItem("playerId", String(data.playerId));
+    sessionStorage.setItem("isLobbyLeader", String(isCreate));
 
-    if (!name.trim()) {
-      return
-    }
-
-    const data = await createRoom(name.trim(), maxPlayerCount);
-    navigate(`/room/${data.roomCode.trim().toUpperCase()}`);
+    navigate(`/room/${data.roomCode}`);
   }
 
   return (
     <>
-      <form onSubmit={handleJoin}>
-        <input
-          type="text"
-          onChange={(e) => setName(e.target.value)}
+      <form onSubmit={(e) => handleRoom(e, false)}>
+        <TextInput
+          onChange={(value) => setName(value)}
           placeholder="Enter your name"
-          required
         />
-
-        <input
-          type="text"
-          value={roomCode}
-          onChange={(e) => setRoomCode(e.target.value)}
+        <TextInput
+          onChange={(value) => setRoomCode(value)}
           placeholder="Enter room code"
-          required
         />
-
         <button type="submit">Join Room</button>
       </form>
-      <form onSubmit={handleCreate}>
-        <input
-          type="text"
-          onChange={(e) => setName(e.target.value)}
+      <form onSubmit={(e) => handleRoom(e, true)}>
+        <TextInput
+          onChange={(value) => setName(value)}
           placeholder="Enter your name"
-          required
         />
-        <input
-          type="number"
-          onChange={(e) => setMaxPlayerCount(Number(e.target.value))}
+        <TextInput
+          onChange={(value) => setMaxPlayerCount(Number(value))}
           placeholder="Enter max player count"
-          required
+          type="number"
+          validate={(value) => Number(value) > 1}
         />
         <button type="submit">Create Room</button>
       </form>

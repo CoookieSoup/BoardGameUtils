@@ -1,43 +1,71 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import './App.css';
-import { loadRoomPlayerInfo } from './requests/joinRoom';
-import { connection, connectToRoom } from "./signalr";
+import objectiveImage from './images/nemesisObjectiveTemplate.png';
+import type { PlayerInfoResponse } from './requests/joinRoom';
+import { loadRoomPlayerInfo, selectObjective } from './requests/joinRoom';
+import { connection, connectToRoom, joinPlayerGroup } from "./signalr";
+import './styling/objectiveCard.css';
 
 function Room() {
-  const [players, setPlayers] = useState<{ id: number; nickname: string }[]>([]);
-  const latestRequest = useRef(0);
-  const { code  } = useParams();
-
-  const refresh = useCallback(async () => {
-    if (!code) return;
-
-    const request = ++latestRequest.current;
-    const data = await loadRoomPlayerInfo(code);
-    if (request === latestRequest.current) {
-      setPlayers(data);
-    }
-  }, [code]);
+  const [players, setPlayers] = useState<PlayerInfoResponse[]>([]);
+  const [objectives, setObjectives] = useState<{ title: string; type: string }[]>([]);
+  const [hasStarted, setHasStarted] = useState(false);
+  const roomId = Number(sessionStorage.getItem("roomId"));
+  const playerId = Number(sessionStorage.getItem("playerId"));
+  const isLobbyLeader = sessionStorage.getItem("isLobbyLeader") === "true";
+  const code = useParams().code || "";
 
   useEffect(() => {
+    if (!roomId) return;
+
+    const refresh = async () => {
+      const data = await loadRoomPlayerInfo(code);
+      setPlayers(data);
+    };
+
     connection.on("PlayersChanged", refresh);
-    connectToRoom(code!).then(refresh);
+
+    connection.on("ObjectivesReceived", (data) => {
+      setHasStarted(true);
+      setObjectives(data);
+    });
+
+    connectToRoom(roomId)
+      .then(refresh)
+      .then(() => joinPlayerGroup(playerId, roomId));
 
     return () => {
-      latestRequest.current++;
       connection.off("PlayersChanged", refresh);
+      connection.off("ObjectivesReceived");
     };
-  }, [code, refresh]);
+  }, [roomId]);
 
   return (
-    <>
-        <input type="text" placeholder="Enter your name" />
-        {players.map(player => (
-          <li key={player.id}>{player.nickname}</li>
+    <div>
+      {players.map(player => (
+        <div>{player.nickname} {player.objective?.title}</div>
+      ))}
+      {isLobbyLeader && !hasStarted && (
+        <button onClick={() => connection.invoke("StartGame", roomId)}>Start Game</button>
+      )}
+      <div className="objectives-container">
+        {objectives.map((objective, index) => (
+            <div className="objective-card" key={index}>
+                <img src={objectiveImage} className="objective-frame" onClick={async () => {
+                  console.log(`Player ${playerId} selected objective ${objective.title} in room ${roomId}`);
+                  await selectObjective(code, playerId, objective);
+                  }}/>
+                <div className="objective-text">
+                    <p>{objective.type == '1' ? "Cooperative" : "Solo"}</p>
+                    <h2>{objective.title}</h2>
+                </div>
+            </div>
         ))}
-    </>
-     
-  )
+      </div>
+    </div>
+  );
 }
 
-export default Room
+export default Room;

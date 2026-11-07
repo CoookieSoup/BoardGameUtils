@@ -9,9 +9,16 @@ export const connection = new signalR.HubConnectionBuilder()
 
 let started: Promise<void> | null = null;
 
-export function connectToRoom(code: string) {
+export function connectToRoom(roomId: number) {
   if (!started) {
     started = connection.start();
   }
-  return started.then(() => connection.invoke("Watch", code));
+  return started.then(() => connection.invoke("Watch", roomId));
+}
+
+export function joinPlayerGroup(playerId: number, roomId: number) {
+  if (!started) {
+    started = connection.start();
+  }
+  return started.then(() => connection.invoke("JoinPlayerGroup", playerId, roomId));
 }

@@ -1,0 +1,40 @@
+.objectives-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.objective-card {
+    position: relative;
+    width: 300px;
+    aspect-ratio: 608 / 810;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.objective-card:hover {
+    transform: scale(1.08);
+    z-index: 10;
+}
+
+.objective-frame {
+    width: 100%;
+    display: block;
+}
+
+.objective-text {
+    position: absolute;
+    top: 50%;
+    left: 12%;
+    width: 76%;
+    transform: translateY(-40%);
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    color: white;
+    text-align: center;
+    padding: 15px;
+}
