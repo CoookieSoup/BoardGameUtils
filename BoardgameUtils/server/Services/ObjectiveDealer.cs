@@ -2,14 +2,15 @@ using Server.Models;
 
 public static class ObjectiveDealer
 {
-    public static List<PlayerObjective> Deal(Room room)
-    {
+    public static List<PlayerObjective> Deal(Room room, List<NemesisObjectiveTemplate>? catalog = null)
+   {
+        catalog ??= NemesisObjectiveCatalog.AllNemesisObjectives; // This is for unit tests
         var players = room.Players;
 
         if (players.Count < 2)
             throw new ArgumentException("At least 2 players are required.");
 
-        var eligible = NemesisObjectiveCatalog.AllNemesisObjectives
+        var eligible = catalog
             .Where(o => o.MinPlayers <= players.Count)
             .ToList();
 
