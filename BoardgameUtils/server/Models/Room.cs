@@ -2,6 +2,7 @@ namespace Server.Models;
 
 public class Room
 {
+    public int TenantId { get; set; }
     public int Id { get; set; }
     public string Code { get; private set; } = "";
     public string GameType { get; set; } = "";

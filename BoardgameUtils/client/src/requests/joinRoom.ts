@@ -28,7 +28,13 @@ export const apiRequest = async <T>(
     successMessage?: string
 ): Promise<T> => {
     try {
-        const res = await fetch(url, options);
+        const res = await fetch(url, {
+            ...options,
+            headers: {
+                "X-Tenant-Id": import.meta.env.VITE_TENANT_ID,
+                ...(options?.headers as Record<string, string>),
+            },
+        });
         const response: ApiResponse<T> = await res.json();
 
         if (!res.ok || !response.success) {

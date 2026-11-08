@@ -1,4 +1,12 @@
 ﻿using System.Text.Json;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
+using Moq;
+using Server.Controllers;
+using Server.Hubs;
+using Server.Models;
+using Xunit;
 
 namespace Server.Tests;
 
@@ -7,10 +15,13 @@ public class ObjectiveDealerTests
     private const int Cooperative = 1;
     private const int Selfish = 2;
 
+    private static AppDbContext DbFor(string dbName, int tenantId) =>
+        new(new DbContextOptionsBuilder<AppDbContext>().UseInMemoryDatabase(dbName).Options,
+            new TenantContext { TenantId = tenantId });
     // Room with the given number of players. Player ids are unique across rooms (room 1: 101, 102, ...)
     private static Room MakeRoom(int roomId, int playerCount)
     {
-        var room = new Room(code: "ABCDE", gameType: "Nemesis", maxPlayers: 5) { Id = roomId };
+        var room = new Room(code: "ABCDE", gameType: "Nemesis", maxPlayers: 5) { Id = roomId, TenantId = 1 };
         for (int i = 1; i <= playerCount; i++) room.Players.Add(new Player(nickname: $"p{i}", roomId: roomId) { Id = roomId * 100 + i });
         return room;
     }
@@ -45,14 +56,15 @@ public class ObjectiveDealerTests
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
-        await using var db = new AppDbContext(options);
+        await using var db = new AppDbContext(options, new TenantContext { TenantId = 1 });
 
         var room = MakeRoom(roomId: 1, playerCount: 4);
         room.setState("Playing");
         db.Rooms.Add(room);
         await db.SaveChangesAsync();
 
-        var controller = new RoomsController(db, new Mock<IHubContext<LobbyHub>>().Object);
+        var controller = new RoomsController(db, new Mock<IHubContext<LobbyHub>>().Object,
+        new TenantContext { TenantId = 1 });
 
         var result = await controller.Join("ABCDE", new RoomsController.JoinRequest("fifth"));
 
@@ -98,5 +110,27 @@ public class ObjectiveDealerTests
         });
         Assert.All(roomB.Players, p => Assert.Empty(p.Objectives));
         Assert.Equal("Lobby", roomB.State);
+    }
+
+    // 5. Tenant A cannot change tenant B's data
+    [Fact]
+    public async Task TenantA_CannotJoin_TenantB_Room()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        await using (var seed = DbFor(dbName, tenantId: 2))
+        {
+            seed.Rooms.Add(new Room("BBBBB", "Nemesis", 5) { TenantId = 2 });
+            await seed.SaveChangesAsync();
+        }
+
+        await using var asTenantA = DbFor(dbName, tenantId: 1);
+        var controller = new RoomsController(asTenantA, new Mock<IHubContext<LobbyHub>>().Object,
+            new TenantContext { TenantId = 1 });
+
+        var result = await controller.Join("BBBBB", new RoomsController.JoinRequest("intruder"));
+
+        Assert.Contains("Room not found", JsonSerializer.Serialize(((ObjectResult)result).Value));
+        await using var asTenantB = DbFor(dbName, tenantId: 2);
+        Assert.Equal(0, await asTenantB.Players.CountAsync());
     }
 }

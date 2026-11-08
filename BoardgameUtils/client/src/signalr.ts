@@ -3,7 +3,7 @@ import * as signalR from "@microsoft/signalr";
 const API = "http://localhost:5018";
 
 export const connection = new signalR.HubConnectionBuilder()
-  .withUrl(`${API}/hubs/lobby`)
+  .withUrl(`${API}/hubs/lobby?tenantId=${import.meta.env.VITE_TENANT_ID}`)
   .withAutomaticReconnect()
   .build();
 

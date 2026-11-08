@@ -13,9 +13,15 @@ public class LobbyHub : Hub
         _db = db;
     }
     
-    public Task Watch(int roomId)
+    public async Task Watch(int roomId)
     {
-        return Groups.AddToGroupAsync(Context.ConnectionId, roomId.ToString());
+        // _db.Rooms is filtered by tenant, so another tenant's room looks like it doesn't exist
+        var roomExists = await _db.Rooms.AnyAsync(r => r.Id == roomId);
+
+        if (!roomExists)
+            throw new HubException("Room not found.");
+
+        await Groups.AddToGroupAsync(Context.ConnectionId, roomId.ToString());
     }
 
     public async Task StartGame(int roomId)

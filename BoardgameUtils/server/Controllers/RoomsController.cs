@@ -13,11 +13,13 @@ public class RoomsController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly IHubContext<LobbyHub> _hub;
+    private readonly TenantContext _tenant;
 
-    public RoomsController(AppDbContext db, IHubContext<LobbyHub> hub)
+    public RoomsController(AppDbContext db, IHubContext<LobbyHub> hub, TenantContext tenant)
     {
         _db = db;
         _hub = hub;
+        _tenant = tenant;
     }
 
     [HttpPost("{code}/join")]
@@ -75,6 +77,14 @@ public class RoomsController : ControllerBase
     [HttpPost("create")]
     public async Task<IActionResult> Create(CreateRequest req)
     {
+        if (_tenant.TenantId == null)
+        {
+            return ApiResponse.UserError("Tenant is required");
+        }
+        if (!await _db.Tenants.AnyAsync(t => t.Id == _tenant.TenantId))
+        {
+            return ApiResponse.UserError("Tenant not found");
+        }
         if (string.IsNullOrWhiteSpace(req.name))
         {
             return ApiResponse.UserError("Player name is required");
@@ -92,7 +102,10 @@ public class RoomsController : ControllerBase
             code: lobbyCode,
             gameType: "Nemesis",
             maxPlayers: req.maxPlayerCount
-        );
+        )
+        {
+            TenantId = _tenant.TenantId.Value
+        };
 
         await using var transaction = await _db.Database.BeginTransactionAsync();
 
