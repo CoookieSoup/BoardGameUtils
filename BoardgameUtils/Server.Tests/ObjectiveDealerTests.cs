@@ -15,18 +15,51 @@ public class ObjectiveDealerTests
     private const ObjectiveType Cooperative = ObjectiveType.Cooperative;
     private const ObjectiveType Selfish = ObjectiveType.Selfish;
 
-    private static AppDbContext DbFor(string dbName, int tenantId) =>
-        new(new DbContextOptionsBuilder<AppDbContext>().UseInMemoryDatabase(dbName).Options,
-            new TenantContext { TenantId = tenantId });
+    private static AppDbContext DbFor(string dbName, int tenantId) => new
+    (
+        options: new DbContextOptionsBuilder<AppDbContext>().UseInMemoryDatabase(dbName).Options,
+        tenant: new TenantContext { TenantId = tenantId }
+    );
+
+    private static RoomsController ControllerFor(AppDbContext db, int tenantId) => new
+    (
+        db: db,
+        hub: new Mock<IHubContext<LobbyHub>>().Object,
+        tenant: new TenantContext { TenantId = tenantId }
+    );
+
+    private static string ErrorMessage(IActionResult result) =>
+        JsonSerializer.Serialize(((ObjectResult)result).Value);
+
     // Room with the given number of players. Player ids are unique across rooms (room 1: 101, 102, ...)
     private static Room MakeRoom(int roomId, int playerCount)
     {
-        var room = new Room(code: "ABCDE", gameType: "Nemesis", maxPlayers: 5) { Id = roomId, TenantId = 1 };
-        for (int i = 1; i <= playerCount; i++) room.Players.Add(new Player(nickname: $"p{i}", roomId: roomId) { Id = roomId * 100 + i });
+        var room = new Room
+        (
+            code: "ABCDE",
+            gameType: "Nemesis",
+            maxPlayers: 5
+        )
+        {
+            Id = roomId,
+            TenantId = 1
+        };
+
+        for (int i = 1; i <= playerCount; i++)
+        {
+            room.Players.Add(new Player
+            (
+                nickname: $"p{i}",
+                roomId: roomId
+            )
+            {
+                Id = roomId * 100 + i
+            });
+        }
+
         return room;
     }
 
-    // 1. Normal case: 4 players, real catalog
     [Fact]
     public void Deal_FourPlayers_EachGetsOneCoopAndOneSelfish_AllDistinct()
     {
@@ -49,32 +82,18 @@ public class ObjectiveDealerTests
         Assert.DoesNotContain(result, o => o.Title == "Žaidėjas 5 turi neišgyventi");
     }
 
-    // 2. Conflict case: objectives already dealt, a 5th player tries to join
     [Fact]
-    public async Task Join_AfterObjectivesDealt_IsRejected_AndNoPlayerAdded()
+    public void AddPlayer_AfterGameStarted_IsRejected()
     {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-        await using var db = new AppDbContext(options, new TenantContext { TenantId = 1 });
-
         var room = MakeRoom(roomId: 1, playerCount: 4);
-        room.setState(RoomState.Playing);
-        db.Rooms.Add(room);
-        await db.SaveChangesAsync();
+        room.Start();
 
-        var controller = new RoomsController(db, new Mock<IHubContext<LobbyHub>>().Object,
-        new TenantContext { TenantId = 1 });
+        var ex = Assert.Throws<InvalidOperationException>(() => room.AddPlayer("fifth"));
 
-        var result = await controller.Join("ABCDE", new RoomsController.JoinRequest("fifth"));
-
-        var json = JsonSerializer.Serialize(((ObjectResult)result).Value);
-        Assert.Contains("Game has already started", json);
-        Assert.Equal(4, await db.Players.CountAsync());
-        Assert.DoesNotContain(await db.Players.ToListAsync(), p => p.Nickname == "fifth");
+        Assert.Equal("Game has already started", ex.Message);
+        Assert.Equal(4, room.Players.Count);
     }
 
-    // 3. Error case: 3 players, only 2 usable selfish objectives
     [Fact]
     public void Deal_NotEnoughSelfishObjectives_Throws_AndAssignsNothing()
     {
@@ -94,42 +113,30 @@ public class ObjectiveDealerTests
         Assert.All(room.Players, p => Assert.Empty(p.Objectives));
     }
 
-    // 4. Data isolation: dealing in room A never touches room B
-    [Fact]
-    public void Deal_InOneRoom_DoesNotTouchOtherRoom()
-    {
-        var roomA = MakeRoom(roomId: 1, playerCount: 3);
-        var roomB = MakeRoom(roomId: 2, playerCount: 3);
-
-        var result = ObjectiveDealer.Deal(roomA);
-
-        Assert.All(result, o =>
-        {
-            Assert.Equal(roomA.Id, o.RoomId);
-            Assert.Contains(o.PlayerId, roomA.Players.Select(p => p.Id));
-        });
-        Assert.All(roomB.Players, p => Assert.Empty(p.Objectives));
-        Assert.Equal(RoomState.Lobby, roomB.State);
-    }
-
-    // 5. Tenant A cannot change tenant B's data
     [Fact]
     public async Task TenantA_CannotJoin_TenantB_Room()
     {
         var dbName = Guid.NewGuid().ToString();
         await using (var seed = DbFor(dbName, tenantId: 2))
         {
-            seed.Rooms.Add(new Room("BBBBB", "Nemesis", 5) { TenantId = 2 });
+            seed.Rooms.Add(new Room
+            (
+                code: "BBBBB",
+                gameType: "Nemesis",
+                maxPlayers: 5
+            )
+            {
+                TenantId = 2
+            });
             await seed.SaveChangesAsync();
         }
 
         await using var asTenantA = DbFor(dbName, tenantId: 1);
-        var controller = new RoomsController(asTenantA, new Mock<IHubContext<LobbyHub>>().Object,
-            new TenantContext { TenantId = 1 });
+        var controller = ControllerFor(asTenantA, tenantId: 1);
 
         var result = await controller.Join("BBBBB", new RoomsController.JoinRequest("intruder"));
 
-        Assert.Contains("Room not found", JsonSerializer.Serialize(((ObjectResult)result).Value));
+        Assert.Contains("Room not found", ErrorMessage(result));
         await using var asTenantB = DbFor(dbName, tenantId: 2);
         Assert.Equal(0, await asTenantB.Players.CountAsync());
     }

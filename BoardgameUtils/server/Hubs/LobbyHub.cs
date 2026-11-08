@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using Server.Models;
 
 namespace Server.Hubs;
 
@@ -32,16 +31,18 @@ public class LobbyHub : Hub
         if (room == null)
             throw new HubException("Room not found.");
 
-        if (room.State != RoomState.Lobby)
-            throw new HubException("Game has already started.");
-
-        if (room.Players.Count < 2)
-            throw new HubException("Not enough players.");
+        try
+        {
+            room.Start();
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new HubException(ex.Message);
+        }
 
         var objectives = ObjectiveDealer.Deal(room);
 
         _db.PlayerObjectives.AddRange(objectives);
-        room.setState(RoomState.Playing);
 
         await _db.SaveChangesAsync();
         await Clients.Group(room.Id.ToString()).SendAsync("GameStarted");

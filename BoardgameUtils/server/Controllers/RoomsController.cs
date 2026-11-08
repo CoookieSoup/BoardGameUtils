@@ -40,21 +40,17 @@ public class RoomsController : ControllerBase
             {
                 return ApiResponse.UserError("Room not found");
             }
-            if (room.State != RoomState.Lobby)
+
+            Player player;
+            try
             {
-                return ApiResponse.UserError("Game has already started");
+                player = room.AddPlayer(req.name);
             }
-            if (room.Players.Count >= room.MaxPlayers)
+            catch (InvalidOperationException ex)
             {
-                return ApiResponse.UserError("Room is full");
+                return ApiResponse.UserError(ex.Message);
             }
 
-            var player = new Player(
-                nickname: req.name,
-                roomId: room.Id
-            );
-
-            _db.Players.Add(player);
             await _db.SaveChangesAsync();
             await _hub.Clients.Group(room.Id.ToString()).SendAsync("PlayersChanged");
 
@@ -89,23 +85,25 @@ public class RoomsController : ControllerBase
         {
             return ApiResponse.UserError("Player name is required");
         }
-        if (req.maxPlayerCount < 2 || req.maxPlayerCount > 5)
-        {
-            return ApiResponse.UserError("Player count must be between 2 and 5");
-        }
 
         const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
         var lobbyCode = new string(Enumerable.Range(0, 5)
             .Select(_ => chars[Random.Shared.Next(chars.Length)]).ToArray());
 
-        var room = new Room(
-            code: lobbyCode,
-            gameType: "Nemesis",
-            maxPlayers: req.maxPlayerCount
-        )
+        Room room;
+        try
         {
-            TenantId = _tenant.TenantId.Value
-        };
+            room = Room.Create(
+                code: lobbyCode,
+                gameType: "Nemesis",
+                maxPlayers: req.maxPlayerCount,
+                tenantId: _tenant.TenantId.Value
+            );
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ApiResponse.UserError(ex.Message);
+        }
 
         await using var transaction = await _db.Database.BeginTransactionAsync();
 

@@ -3,18 +3,15 @@ using Server.Hubs;
 using Server.Models;
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<TenantContext>(sp =>
 {
     var http = sp.GetRequiredService<IHttpContextAccessor>().HttpContext;
-    var raw = http?.Request.Headers["X-Tenant-Id"].FirstOrDefault()
-              ?? http?.Request.Query["tenantId"].FirstOrDefault();   // SignalR sends it in the URL
+    var raw = http?.Request.Headers["X-Tenant-Id"].FirstOrDefault() ?? http?.Request.Query["tenantId"].FirstOrDefault();
     return new TenantContext { TenantId = int.TryParse(raw, out var id) ? id : null };
 });
 builder.Services.AddDbContext<AppDbContext>(o => o.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
@@ -51,7 +48,7 @@ using (var scope = app.Services.CreateScope())
         await db.SaveChangesAsync();
     }
 }
-// Configure the HTTP request pipeline.
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();

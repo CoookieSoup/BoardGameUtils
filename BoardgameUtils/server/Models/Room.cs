@@ -2,6 +2,9 @@ namespace Server.Models;
 
 public class Room
 {
+    private const int MinPlayerCount = 2;
+    private const int MaxPlayerCount = 5;
+
     public int TenantId { get; set; }
     public Tenant? Tenant { get; set; }
     public int Id { get; set; }
@@ -14,9 +17,56 @@ public class Room
 
     public List<PlayerObjective> Objectives { get; set; } = new();
 
-    public void setState(RoomState state)
+    public Player AddPlayer(string nickname)
     {
-        State = state;
+        if (State != RoomState.Lobby)
+        {
+            throw new InvalidOperationException("Game has already started");
+        }
+        if (Players.Count >= MaxPlayers)
+        {
+            throw new InvalidOperationException("Room is full");
+        }
+
+        var player = new Player
+        (
+            nickname: nickname,
+            roomId: Id
+        );
+        Players.Add(player);
+        return player;
+    }
+
+    public void Start()
+    {
+        if (State != RoomState.Lobby)
+        {
+            throw new InvalidOperationException("Game has already started.");
+        }
+        if (Players.Count < MinPlayerCount)
+        {
+            throw new InvalidOperationException("Not enough players.");
+        }
+
+        State = RoomState.Playing;
+    }
+
+    public static Room Create(string code, string gameType, int maxPlayers, int tenantId)
+    {
+        if (maxPlayers < MinPlayerCount || maxPlayers > MaxPlayerCount)
+        {
+            throw new InvalidOperationException($"Player count must be between {MinPlayerCount} and {MaxPlayerCount}");
+        }
+
+        return new Room
+        (
+            code: code,
+            gameType: gameType,
+            maxPlayers: maxPlayers
+        )
+        {
+            TenantId = tenantId
+        };
     }
 
     public Room(string code, string gameType, int maxPlayers)
