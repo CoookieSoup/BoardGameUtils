@@ -6,7 +6,7 @@ public class PlayerObjective
     public int Id { get; set; }
 
     public string Title { get; set; } = "";
-    public int Type { get; set; }
+    public ObjectiveType Type { get; set; }
 
     public int MinPlayers { get; set; }
     public bool IsChosen { get; set; }

@@ -15,7 +15,6 @@ public class LobbyHub : Hub
     
     public async Task Watch(int roomId)
     {
-        // _db.Rooms is filtered by tenant, so another tenant's room looks like it doesn't exist
         var roomExists = await _db.Rooms.AnyAsync(r => r.Id == roomId);
 
         if (!roomExists)
@@ -33,7 +32,7 @@ public class LobbyHub : Hub
         if (room == null)
             throw new HubException("Room not found.");
 
-        if (room.State != "Lobby")
+        if (room.State != RoomState.Lobby)
             throw new HubException("Game has already started.");
 
         if (room.Players.Count < 2)
@@ -42,7 +41,7 @@ public class LobbyHub : Hub
         var objectives = ObjectiveDealer.Deal(room);
 
         _db.PlayerObjectives.AddRange(objectives);
-        room.setState("Playing");
+        room.setState(RoomState.Playing);
 
         await _db.SaveChangesAsync();
         await Clients.Group(room.Id.ToString()).SendAsync("GameStarted");

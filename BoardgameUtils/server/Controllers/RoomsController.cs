@@ -40,7 +40,7 @@ public class RoomsController : ControllerBase
             {
                 return ApiResponse.UserError("Room not found");
             }
-            if (room.State != "Lobby")
+            if (room.State != RoomState.Lobby)
             {
                 return ApiResponse.UserError("Game has already started");
             }
@@ -89,9 +89,9 @@ public class RoomsController : ControllerBase
         {
             return ApiResponse.UserError("Player name is required");
         }
-        if (req.maxPlayerCount < 1 || req.maxPlayerCount > 5)
+        if (req.maxPlayerCount < 2 || req.maxPlayerCount > 5)
         {
-            return ApiResponse.UserError("Player count must be between 1 and 5");
+            return ApiResponse.UserError("Player count must be between 2 and 5");
         }
 
         const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -183,12 +183,12 @@ public class RoomsController : ControllerBase
     }
 
     [HttpPost("{code}/selectObjective")]
-    public async Task<IActionResult> SelectObjective(SelectObjectiveRequest req)
+    public async Task<IActionResult> SelectObjective(string code, SelectObjectiveRequest req)
     {
         try
         {
             var objectives = await _db.PlayerObjectives
-            .Where(o => o.PlayerId == req.playerId)
+            .Where(o => o.PlayerId == req.playerId && o.Room!.Code == code.ToUpper())
             .ToListAsync();
 
             var chosenObjective = objectives.FirstOrDefault(o => o.Id == req.objectiveId);

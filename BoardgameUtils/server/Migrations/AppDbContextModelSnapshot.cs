@@ -97,20 +97,18 @@ namespace Server.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("HostPlayerId")
-                        .HasColumnType("integer");
-
                     b.Property<int>("MaxPlayers")
                         .HasColumnType("integer");
 
-                    b.Property<string>("State")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<int>("State")
+                        .HasColumnType("integer");
 
                     b.Property<int>("TenantId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("Rooms");
                 });
@@ -160,6 +158,15 @@ namespace Server.Migrations
                     b.Navigation("Player");
 
                     b.Navigation("Room");
+                });
+
+            modelBuilder.Entity("Server.Models.Room", b =>
+                {
+                    b.HasOne("Server.Models.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Server.Models.Player", b =>

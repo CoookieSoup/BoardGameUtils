@@ -12,8 +12,8 @@ namespace Server.Tests;
 
 public class ObjectiveDealerTests
 {
-    private const int Cooperative = 1;
-    private const int Selfish = 2;
+    private const ObjectiveType Cooperative = ObjectiveType.Cooperative;
+    private const ObjectiveType Selfish = ObjectiveType.Selfish;
 
     private static AppDbContext DbFor(string dbName, int tenantId) =>
         new(new DbContextOptionsBuilder<AppDbContext>().UseInMemoryDatabase(dbName).Options,
@@ -59,7 +59,7 @@ public class ObjectiveDealerTests
         await using var db = new AppDbContext(options, new TenantContext { TenantId = 1 });
 
         var room = MakeRoom(roomId: 1, playerCount: 4);
-        room.setState("Playing");
+        room.setState(RoomState.Playing);
         db.Rooms.Add(room);
         await db.SaveChangesAsync();
 
@@ -90,7 +90,7 @@ public class ObjectiveDealerTests
         var ex = Assert.Throws<ArgumentException>(() => ObjectiveDealer.Deal(room, reducedCatalog));
 
         Assert.Equal("Not enough objectives.", ex.Message);
-        Assert.Equal("Lobby", room.State);
+        Assert.Equal(RoomState.Lobby, room.State);
         Assert.All(room.Players, p => Assert.Empty(p.Objectives));
     }
 
@@ -109,7 +109,7 @@ public class ObjectiveDealerTests
             Assert.Contains(o.PlayerId, roomA.Players.Select(p => p.Id));
         });
         Assert.All(roomB.Players, p => Assert.Empty(p.Objectives));
-        Assert.Equal("Lobby", roomB.State);
+        Assert.Equal(RoomState.Lobby, roomB.State);
     }
 
     // 5. Tenant A cannot change tenant B's data

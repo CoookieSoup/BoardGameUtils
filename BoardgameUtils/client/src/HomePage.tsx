@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './App.css'
 import TextInput from './components/inputs'
-import { createRoom, joinRoom } from './requests/joinRoom'
+import { createRoom, joinRoom } from './requests/roomsApi'
 
 function Home() {
   const [name, setName] = useState('')

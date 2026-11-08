@@ -1,16 +1,19 @@
 
 import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useParams } from 'react-router-dom';
 import './App.css';
 import objectiveImage from './images/nemesisObjectiveTemplate.png';
-import type { PlayerInfoResponse } from './requests/joinRoom';
-import { loadRoomPlayerInfo, selectObjective } from './requests/joinRoom';
+import type { PlayerInfoResponse } from './requests/roomsApi';
+import { loadRoomPlayerInfo, selectObjective } from './requests/roomsApi';
 import { connection, connectToRoom, joinPlayerGroup } from "./signalr";
 import './styling/objectiveCard.css';
+import type { NemesisPlayerObjective } from './types/nemesisTypes';
+import { ObjectiveType } from './types/nemesisTypes';
 
 function Room() {
   const [players, setPlayers] = useState<PlayerInfoResponse[]>([]);
-  const [objectives, setObjectives] = useState<{ id: number, title: string; type: string }[]>([]);
+  const [objectives, setObjectives] = useState<NemesisPlayerObjective[]>([]);
   const [hasStarted, setHasStarted] = useState(false);
   const roomId = Number(sessionStorage.getItem("roomId"));
   const playerId = Number(sessionStorage.getItem("playerId"));
@@ -42,13 +45,22 @@ function Room() {
     };
   }, [roomId]);
 
+  const startGame = async () => {
+    try {
+      await connection.invoke("StartGame", roomId);
+    } catch (error) {
+      const serverMessage = String(error).split("HubException: ")[1];
+      toast.error(serverMessage ?? "Could not start the game");
+    }
+  };
+
   return (
     <div>
       {players.map(player => (
         <div>{player.nickname} {player.objective?.title}</div>
       ))}
       {isLobbyLeader && !hasStarted && (
-        <button onClick={() => connection.invoke("StartGame", roomId)}>Start Game</button>
+        <button onClick={startGame}>Start Game</button>
       )}
       <div className="objectives-container">
         {objectives.map((objective, index) => (
@@ -58,7 +70,7 @@ function Room() {
                   await selectObjective(code, playerId, objective.id);
                   }}/>
                 <div className="objective-text">
-                    <p>{objective.type == '1' ? "Cooperative" : "Solo"}</p>
+                    <p>{objective.type === ObjectiveType.Cooperative ? "Cooperative" : "Solo"}</p>
                     <h2>{objective.title}</h2>
                 </div>
             </div>

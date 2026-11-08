@@ -15,12 +15,12 @@ public static class ObjectiveDealer
             .ToList();
 
         var coop = eligible
-            .Where(o => o.Type == 1)
+            .Where(o => o.Type == ObjectiveType.Cooperative)
             .OrderBy(_ => Random.Shared.Next())
             .ToList();
 
         var selfish = eligible
-            .Where(o => o.Type == 2)
+            .Where(o => o.Type == ObjectiveType.Selfish)
             .OrderBy(_ => Random.Shared.Next())
             .ToList();
 

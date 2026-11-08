@@ -3,18 +3,18 @@ namespace Server.Models;
 public class Room
 {
     public int TenantId { get; set; }
+    public Tenant? Tenant { get; set; }
     public int Id { get; set; }
     public string Code { get; private set; } = "";
     public string GameType { get; set; } = "";
-    public string State { get; private set; } = "Lobby";
-    public int HostPlayerId { get; set; }
+    public RoomState State { get; private set; } = RoomState.Lobby;
 
     public List<Player> Players { get; private set; } = new();
     public int MaxPlayers { get; private set; }
 
     public List<PlayerObjective> Objectives { get; set; } = new();
 
-    public void setState(string state)
+    public void setState(RoomState state)
     {
         State = state;
     }
