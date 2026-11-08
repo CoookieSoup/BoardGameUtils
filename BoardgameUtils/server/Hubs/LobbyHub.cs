@@ -22,47 +22,6 @@ public class LobbyHub : Hub
         await Groups.AddToGroupAsync(Context.ConnectionId, roomId.ToString());
     }
 
-    public async Task StartGame(int roomId)
-    {
-        var room = await _db.Rooms
-            .Include(r => r.Players)
-            .FirstOrDefaultAsync(r => r.Id == roomId);
-
-        if (room == null)
-            throw new HubException("Room not found.");
-
-        try
-        {
-            room.Start();
-        }
-        catch (InvalidOperationException ex)
-        {
-            throw new HubException(ex.Message);
-        }
-
-        var objectives = ObjectiveDealer.Deal(room);
-
-        _db.PlayerObjectives.AddRange(objectives);
-
-        await _db.SaveChangesAsync();
-        await Clients.Group(room.Id.ToString()).SendAsync("GameStarted");
-
-        foreach (var player in room.Players)
-        {
-            var playerObjectives = objectives
-                .Where(o => o.PlayerId == player.Id)
-                .Select(o => new
-                {
-                    o.Id,
-                    o.Title,
-                    o.Type
-                })
-                .ToList();
-
-            await Clients.Group($"player_{player.Id}").SendAsync("ObjectivesReceived", playerObjectives);
-        }
-    }
-
     public async Task JoinPlayerGroup(int playerId, int roomId)
     {
         var player = await _db.Players

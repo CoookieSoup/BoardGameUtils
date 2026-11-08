@@ -1,11 +1,10 @@
 
 import { useEffect, useState } from 'react';
-import toast from 'react-hot-toast';
 import { useParams } from 'react-router-dom';
 import './App.css';
 import objectiveImage from './images/nemesisObjectiveTemplate.png';
 import type { PlayerInfoResponse } from './requests/roomsApi';
-import { loadRoomPlayerInfo, selectObjective } from './requests/roomsApi';
+import { loadObjectives, loadRoomPlayerInfo, selectObjective, startGame } from './requests/roomsApi';
 import { connection, connectToRoom, joinPlayerGroup } from "./signalr";
 import './styling/objectiveCard.css';
 import type { NemesisPlayerObjective } from './types/nemesisTypes';
@@ -28,12 +27,14 @@ function Room() {
       setPlayers(data);
     };
 
-    connection.on("PlayersChanged", refresh);
-
-    connection.on("ObjectivesReceived", (data) => {
+    const refreshObjectives = async () => {
+      const data = await loadObjectives(code, playerId);
       setHasStarted(true);
       setObjectives(data);
-    });
+    };
+
+    connection.on("PlayersChanged", refresh);
+    connection.on("GameStarted", refreshObjectives);
 
     connectToRoom(roomId)
       .then(refresh)
@@ -41,18 +42,9 @@ function Room() {
 
     return () => {
       connection.off("PlayersChanged", refresh);
-      connection.off("ObjectivesReceived");
+      connection.off("GameStarted", refreshObjectives);
     };
   }, [roomId]);
-
-  const startGame = async () => {
-    try {
-      await connection.invoke("StartGame", roomId);
-    } catch (error) {
-      const serverMessage = String(error).split("HubException: ")[1];
-      toast.error(serverMessage ?? "Could not start the game");
-    }
-  };
 
   return (
     <div>
@@ -60,7 +52,7 @@ function Room() {
         <div>{player.nickname} {player.objective?.title}</div>
       ))}
       {isLobbyLeader && !hasStarted && (
-        <button onClick={startGame}>Start Game</button>
+        <button onClick={() => startGame(code)}>Start Game</button>
       )}
       <div className="objectives-container">
         {objectives.map((objective, index) => (

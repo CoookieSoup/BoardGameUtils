@@ -180,6 +180,72 @@ public class RoomsController : ControllerBase
         }
     }
 
+    [HttpPost("{code}/start")]
+    public async Task<IActionResult> Start(string code)
+    {
+        try
+        {
+            var room = await _db.Rooms
+                .Include(r => r.Players)
+                .FirstOrDefaultAsync(r => r.Code == code.ToUpper());
+
+            if (room == null)
+            {
+                return ApiResponse.UserError("Room not found");
+            }
+
+            try
+            {
+                room.Start();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return ApiResponse.UserError(ex.Message);
+            }
+
+            _db.PlayerObjectives.AddRange(ObjectiveDealer.Deal(room));
+
+            await _db.SaveChangesAsync();
+            await _hub.Clients.Group(room.Id.ToString()).SendAsync("GameStarted");
+
+            return ApiResponse.Success(new { });
+        }
+        catch (Exception ex)
+        {
+            return ApiResponse.ServerError("Failed to start game", ex);
+        }
+    }
+
+    [HttpGet("{code}/objectives")]
+    public async Task<IActionResult> GetObjectives(string code, [FromQuery] int playerId)
+    {
+        try
+        {
+            var roomExists = await _db.Rooms.AnyAsync(r => r.Code == code.ToUpper());
+
+            if (!roomExists)
+            {
+                return ApiResponse.UserError("Room not found");
+            }
+
+            var objectives = await _db.PlayerObjectives
+                .Where(o => o.PlayerId == playerId && o.Room!.Code == code.ToUpper())
+                .Select(o => new
+                {
+                    id = o.Id,
+                    title = o.Title,
+                    type = o.Type
+                })
+                .ToListAsync();
+
+            return ApiResponse.Success(objectives);
+        }
+        catch (Exception ex)
+        {
+            return ApiResponse.ServerError("Failed to load objectives", ex);
+        }
+    }
+
     [HttpPost("{code}/selectObjective")]
     public async Task<IActionResult> SelectObjective(string code, SelectObjectiveRequest req)
     {

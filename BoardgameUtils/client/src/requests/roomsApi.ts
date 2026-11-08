@@ -1,4 +1,5 @@
 import toast from "react-hot-toast";
+import type { NemesisPlayerObjective } from "../types/nemesisTypes";
 
 const API = "http://localhost:5018";
 
@@ -83,6 +84,19 @@ export const createRoom = (name: string, maxPlayerCount: number) => {
 export const loadRoomPlayerInfo = (code: string) => {
     return apiRequest<PlayerInfoResponse[]>(
         `${API}/api/rooms/${code}/getPlayerInfo`
+    );
+};
+
+export const loadObjectives = (code: string, playerId: number) => {
+    return apiRequest<NemesisPlayerObjective[]>(
+        `${API}/api/rooms/${code}/objectives?playerId=${playerId}`
+    );
+};
+
+export const startGame = (code: string) => {
+    return apiRequest<object>(
+        `${API}/api/rooms/${code}/start`,
+        { method: "POST" }
     );
 };
 
