@@ -9,6 +9,8 @@ public class Room
     public Tenant? Tenant { get; set; }
     public int Id { get; set; }
     public string Code { get; private set; } = "";
+
+    public string Password { get; private set; } = "";
     public string GameType { get; set; } = "";
     public RoomState State { get; private set; } = RoomState.Lobby;
 
@@ -31,7 +33,8 @@ public class Room
         var player = new Player
         (
             nickname: nickname,
-            roomId: Id
+            roomId: Id,
+            tenantId: TenantId
         );
         Players.Add(player);
         return player;
@@ -51,11 +54,15 @@ public class Room
         State = RoomState.Playing;
     }
 
-    public static Room Create(string code, string gameType, int maxPlayers, int tenantId)
+    public static Room Create(string code, string gameType, int maxPlayers, string password)
     {
         if (maxPlayers < MinPlayerCount || maxPlayers > MaxPlayerCount)
         {
             throw new InvalidOperationException($"Player count must be between {MinPlayerCount} and {MaxPlayerCount}");
+        }
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            throw new InvalidOperationException("Room password is required");
         }
 
         return new Room
@@ -65,7 +72,8 @@ public class Room
             maxPlayers: maxPlayers
         )
         {
-            TenantId = tenantId
+            Password = password,
+            Tenant = new Tenant { Name = $"Room {code}" }
         };
     }
 

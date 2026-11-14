@@ -3,7 +3,9 @@ import * as signalR from "@microsoft/signalr";
 const API = "http://localhost:5018";
 
 export const connection = new signalR.HubConnectionBuilder()
-  .withUrl(`${API}/hubs/lobby?tenantId=${import.meta.env.VITE_TENANT_ID}`)
+  .withUrl(`${API}/hubs/lobby`, {
+    accessTokenFactory: () => sessionStorage.getItem("token") ?? "",
+  })
   .withAutomaticReconnect()
   .build();
 
@@ -16,9 +18,9 @@ export function connectToRoom(roomId: number) {
   return started.then(() => connection.invoke("Watch", roomId));
 }
 
-export function joinPlayerGroup(playerId: number, roomId: number) {
+export function joinPlayerGroup() {
   if (!started) {
     started = connection.start();
   }
-  return started.then(() => connection.invoke("JoinPlayerGroup", playerId, roomId));
+  return started.then(() => connection.invoke("JoinPlayerGroup"));
 }

@@ -15,9 +15,10 @@ function Room() {
   const [objectives, setObjectives] = useState<NemesisPlayerObjective[]>([]);
   const [hasStarted, setHasStarted] = useState(false);
   const roomId = Number(sessionStorage.getItem("roomId"));
-  const playerId = Number(sessionStorage.getItem("playerId"));
   const isLobbyLeader = sessionStorage.getItem("isLobbyLeader") === "true";
   const code = useParams().code || "";
+  const password = sessionStorage.getItem("roomPassword");
+  const hasChosen = objectives.length === 1;
 
   useEffect(() => {
     if (!roomId) return;
@@ -28,7 +29,7 @@ function Room() {
     };
 
     const refreshObjectives = async () => {
-      const data = await loadObjectives(code, playerId);
+      const data = await loadObjectives(code);
       setHasStarted(true);
       setObjectives(data);
     };
@@ -38,7 +39,7 @@ function Room() {
 
     connectToRoom(roomId)
       .then(refresh)
-      .then(() => joinPlayerGroup(playerId, roomId));
+      .then(() => joinPlayerGroup());
 
     return () => {
       connection.off("PlayersChanged", refresh);
@@ -48,6 +49,9 @@ function Room() {
 
   return (
     <div>
+      {password && !hasStarted && (
+        <p>Room code: <b>{code}</b> · Password: <b>{password}</b></p>
+      )}
       {players.map(player => (
         <div>{player.nickname} {player.objective?.title}</div>
       ))}
@@ -56,10 +60,11 @@ function Room() {
       )}
       <div className="objectives-container">
         {objectives.map((objective, index) => (
-            <div className="objective-card" key={index}>
+            <div className={hasChosen ? "objective-card chosen" : "objective-card"} key={index}>
                 <img src={objectiveImage} className="objective-frame" onClick={async () => {
-                  console.log(`Player ${playerId} selected objective ${objective.title} in room ${roomId}`);
-                  await selectObjective(code, playerId, objective.id);
+                  if (hasChosen) return;
+                  await selectObjective(code, objective.id);
+                  setObjectives([objective]);
                   }}/>
                 <div className="objective-text">
                     <p>{objective.type === ObjectiveType.Cooperative ? "Cooperative" : "Solo"}</p>

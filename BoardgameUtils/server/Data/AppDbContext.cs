@@ -18,7 +18,7 @@ public class AppDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder b)
     {
         b.Entity<Room>().HasQueryFilter(r => r.TenantId == _tenant.TenantId);
-        b.Entity<Player>().HasQueryFilter(p => p.Room!.TenantId == _tenant.TenantId);
-        b.Entity<PlayerObjective>().HasQueryFilter(o => o.Room!.TenantId == _tenant.TenantId);
+        b.Entity<Player>().HasQueryFilter(p => p.TenantId == _tenant.TenantId);
+        b.Entity<PlayerObjective>().HasQueryFilter(o => o.TenantId == _tenant.TenantId);
     }
 }

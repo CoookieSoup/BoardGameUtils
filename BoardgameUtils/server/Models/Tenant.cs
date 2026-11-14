@@ -9,4 +9,5 @@ public class Tenant
 public class TenantContext
 {
     public int? TenantId { get; set; }
+    public int? PlayerId { get; set; }
 }

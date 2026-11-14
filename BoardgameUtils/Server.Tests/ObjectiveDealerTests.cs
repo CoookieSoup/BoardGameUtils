@@ -31,7 +31,6 @@ public class ObjectiveDealerTests
     private static string ErrorMessage(IActionResult result) =>
         JsonSerializer.Serialize(((ObjectResult)result).Value);
 
-    // Room with the given number of players. Player ids are unique across rooms (room 1: 101, 102, ...)
     private static Room MakeRoom(int roomId, int playerCount)
     {
         var room = new Room
@@ -50,7 +49,8 @@ public class ObjectiveDealerTests
             room.Players.Add(new Player
             (
                 nickname: $"p{i}",
-                roomId: roomId
+                roomId: roomId,
+                tenantId: 1
             )
             {
                 Id = roomId * 100 + i
@@ -77,7 +77,6 @@ public class ObjectiveDealerTests
             Assert.Single(playerObjectives, o => o.Type == Selfish);
         }
 
-        // These two need 5 players, so they must never be dealt to 4
         Assert.DoesNotContain(result, o => o.Title == "Kad kiekvienas kambarys būtų išieškotas");
         Assert.DoesNotContain(result, o => o.Title == "Žaidėjas 5 turi neišgyventi");
     }
@@ -114,7 +113,7 @@ public class ObjectiveDealerTests
     }
 
     [Fact]
-    public async Task TenantA_CannotJoin_TenantB_Room()
+    public async Task TenantA_CannotSee_TenantB_Room()
     {
         var dbName = Guid.NewGuid().ToString();
         await using (var seed = DbFor(dbName, tenantId: 2))
@@ -134,10 +133,8 @@ public class ObjectiveDealerTests
         await using var asTenantA = DbFor(dbName, tenantId: 1);
         var controller = ControllerFor(asTenantA, tenantId: 1);
 
-        var result = await controller.Join("BBBBB", new RoomsController.JoinRequest("intruder"));
+        var result = await controller.GetPlayerInfo("BBBBB");
 
         Assert.Contains("Room not found", ErrorMessage(result));
-        await using var asTenantB = DbFor(dbName, tenantId: 2);
-        Assert.Equal(0, await asTenantB.Players.CountAsync());
     }
 }

@@ -4,7 +4,7 @@ public static class ObjectiveDealer
 {
     public static List<PlayerObjective> Deal(Room room, List<NemesisObjectiveTemplate>? catalog = null)
    {
-        catalog ??= NemesisObjectiveCatalog.AllNemesisObjectives; // This is for unit tests
+        catalog ??= NemesisObjectiveCatalog.AllNemesisObjectives;
         var players = room.Players;
 
         if (players.Count < 2)
@@ -35,6 +35,7 @@ public static class ObjectiveDealer
             {
                 PlayerId = players[i].Id,
                 RoomId = room.Id,
+                TenantId = room.TenantId,
 
                 Title = coop[i].Title,
                 Type = coop[i].Type,
@@ -45,6 +46,7 @@ public static class ObjectiveDealer
             {
                 PlayerId = players[i].Id,
                 RoomId = room.Id,
+                TenantId = room.TenantId,
 
                 Title = selfish[i].Title,
                 Type = selfish[i].Type,

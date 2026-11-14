@@ -1,15 +1,18 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Server.Models;
 
 namespace Server.Hubs;
 
 public class LobbyHub : Hub
 {
     private AppDbContext _db;
+    private TenantContext _tenant;
 
-    public LobbyHub(AppDbContext db)
+    public LobbyHub(AppDbContext db, TenantContext tenant)
     {
         _db = db;
+        _tenant = tenant;
     }
     
     public async Task Watch(int roomId)
@@ -22,15 +25,12 @@ public class LobbyHub : Hub
         await Groups.AddToGroupAsync(Context.ConnectionId, roomId.ToString());
     }
 
-    public async Task JoinPlayerGroup(int playerId, int roomId)
+    public async Task JoinPlayerGroup()
     {
-        var player = await _db.Players
-            .FirstOrDefaultAsync(p => p.Id == playerId && p.RoomId == roomId);
-
-        if (player == null)
+        if (_tenant.PlayerId == null)
             throw new HubException("Player not found.");
 
-        await Groups.AddToGroupAsync(Context.ConnectionId,$"player_{playerId}");
+        await Groups.AddToGroupAsync(Context.ConnectionId, $"player_{_tenant.PlayerId}");
     }
     
 }

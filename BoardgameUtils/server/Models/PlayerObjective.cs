@@ -4,6 +4,8 @@ namespace Server.Models;
 public class PlayerObjective
 {
     public int Id { get; set; }
+    public int TenantId { get; set; }
+    public Tenant? Tenant { get; set; }
 
     public string Title { get; set; } = "";
     public ObjectiveType Type { get; set; }

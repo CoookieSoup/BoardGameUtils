@@ -38,9 +38,18 @@ namespace Server.Migrations
                     b.Property<int>("RoomId")
                         .HasColumnType("integer");
 
+                    b.Property<int>("TenantId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
 
                     b.HasIndex("RoomId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("Players");
                 });
@@ -65,6 +74,9 @@ namespace Server.Migrations
                     b.Property<int>("RoomId")
                         .HasColumnType("integer");
 
+                    b.Property<int>("TenantId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("text");
@@ -77,6 +89,8 @@ namespace Server.Migrations
                     b.HasIndex("PlayerId");
 
                     b.HasIndex("RoomId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("PlayerObjectives");
                 });
@@ -99,6 +113,10 @@ namespace Server.Migrations
 
                     b.Property<int>("MaxPlayers")
                         .HasColumnType("integer");
+
+                    b.Property<string>("Password")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<int>("State")
                         .HasColumnType("integer");
@@ -138,7 +156,15 @@ namespace Server.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Server.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Room");
+
+                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("Server.Models.PlayerObjective", b =>
@@ -155,18 +181,28 @@ namespace Server.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Player");
-
-                    b.Navigation("Room");
-                });
-
-            modelBuilder.Entity("Server.Models.Room", b =>
-                {
-                    b.HasOne("Server.Models.Tenant", null)
+                    b.HasOne("Server.Models.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Player");
+
+                    b.Navigation("Room");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("Server.Models.Room", b =>
+                {
+                    b.HasOne("Server.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("Server.Models.Player", b =>

@@ -2,12 +2,13 @@ import { useState } from "react";
 
 type TextInputProps = {
     type?: string;
-    onChange: (value: string) => void;
+    name?: string;
+    onChange?: (value: string) => void;
     placeholder: string;
     validate?: (value: string) => boolean;
 };
 
-function TextInput({ type, onChange, placeholder, validate }: TextInputProps) {
+function TextInput({ type, name, onChange, placeholder, validate }: TextInputProps) {
     const [value, setValue] = useState("");
     const [submitted, setSubmitted] = useState(false);
 
@@ -17,9 +18,10 @@ function TextInput({ type, onChange, placeholder, validate }: TextInputProps) {
         <>
             <input
                 type={type || "text"}
+                name={name}
                 onChange={(e) => {
                     setValue(e.target.value);
-                    onChange(e.target.value);
+                    onChange?.(e.target.value);
                 }}
                 placeholder={placeholder}
                 required

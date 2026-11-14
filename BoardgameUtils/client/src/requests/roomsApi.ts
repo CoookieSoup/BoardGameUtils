@@ -13,6 +13,7 @@ export type JoinCreateRoomResponse = {
     playerId: number;
     roomCode: string;
     roomId: number;
+    token: string;
 };
 
 export type PlayerInfoResponse = {
@@ -32,7 +33,7 @@ export const apiRequest = async <T>(
         const res = await fetch(url, {
             ...options,
             headers: {
-                "X-Tenant-Id": import.meta.env.VITE_TENANT_ID,
+                "Authorization": `Bearer ${sessionStorage.getItem("token") ?? ""}`,
                 ...(options?.headers as Record<string, string>),
             },
         });
@@ -57,25 +58,25 @@ export const apiRequest = async <T>(
     }
 };
 
-export const joinRoom = (code: string, name: string) => {
+export const joinRoom = (code: string, name: string, password: string) => {
     return apiRequest<JoinCreateRoomResponse>(
         `${API}/api/rooms/${code}/join`,
         {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name }),
+            body: JSON.stringify({ name, password }),
         },
         "Joined room successfully!"
     );
 };
 
-export const createRoom = (name: string, maxPlayerCount: number) => {
+export const createRoom = (name: string, maxPlayerCount: number, password: string) => {
     return apiRequest<JoinCreateRoomResponse>(
         `${API}/api/rooms/create`,
         {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name, maxPlayerCount }),
+            body: JSON.stringify({ name, maxPlayerCount, password }),
         },
         "Room created successfully!"
     );
@@ -87,9 +88,9 @@ export const loadRoomPlayerInfo = (code: string) => {
     );
 };
 
-export const loadObjectives = (code: string, playerId: number) => {
+export const loadObjectives = (code: string) => {
     return apiRequest<NemesisPlayerObjective[]>(
-        `${API}/api/rooms/${code}/objectives?playerId=${playerId}`
+        `${API}/api/rooms/${code}/objectives`
     );
 };
 
@@ -100,13 +101,13 @@ export const startGame = (code: string) => {
     );
 };
 
-export const selectObjective = (code: string, playerId: number, objectiveId: number) => {
+export const selectObjective = (code: string, objectiveId: number) => {
     return apiRequest<PlayerInfoResponse[]>(
         `${API}/api/rooms/${code}/selectObjective`,
         {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ playerId, objectiveId }),
+            body: JSON.stringify({ objectiveId }),
         },
         "Objective selected successfully!"
     );

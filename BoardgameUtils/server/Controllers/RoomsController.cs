@@ -29,16 +29,21 @@ public class RoomsController : ControllerBase
         {
             return ApiResponse.UserError("Player name is required");
         }
+        if (string.IsNullOrWhiteSpace(req.password))
+        {
+            return ApiResponse.UserError("Room password is required");
+        }
 
         try
         {
             var room = await _db.Rooms
+                .IgnoreQueryFilters()
                 .Include(r => r.Players)
-                .FirstOrDefaultAsync(r => r.Code == code.ToUpper());
+                .FirstOrDefaultAsync(r => r.Code == code.ToUpper() && r.Password == req.password);
 
             if (room == null)
             {
-                return ApiResponse.UserError("Room not found");
+                return ApiResponse.UserError("Wrong room code or password");
             }
 
             Player player;
@@ -59,6 +64,7 @@ public class RoomsController : ControllerBase
                 playerId = player.Id,
                 roomCode = room.Code,
                 roomId = room.Id,
+                token = player.Token,
             });
         }
         catch (Exception ex)
@@ -67,20 +73,12 @@ public class RoomsController : ControllerBase
         }
     }
 
-    public record JoinRequest(string name);
+    public record JoinRequest(string name, string password);
 
 
     [HttpPost("create")]
     public async Task<IActionResult> Create(CreateRequest req)
     {
-        if (_tenant.TenantId == null)
-        {
-            return ApiResponse.UserError("Tenant is required");
-        }
-        if (!await _db.Tenants.AnyAsync(t => t.Id == _tenant.TenantId))
-        {
-            return ApiResponse.UserError("Tenant not found");
-        }
         if (string.IsNullOrWhiteSpace(req.name))
         {
             return ApiResponse.UserError("Player name is required");
@@ -97,7 +95,7 @@ public class RoomsController : ControllerBase
                 code: lobbyCode,
                 gameType: "Nemesis",
                 maxPlayers: req.maxPlayerCount,
-                tenantId: _tenant.TenantId.Value
+                password: req.password
             );
         }
         catch (InvalidOperationException ex)
@@ -112,10 +110,12 @@ public class RoomsController : ControllerBase
             _db.Rooms.Add(room);
             await _db.SaveChangesAsync();
 
-            var player = new Player(
+            var player = new Player
+            (
                 nickname: req.name,
                 isLobbyLeader: true,
-                roomId: room.Id
+                roomId: room.Id,
+                tenantId: room.TenantId
             );
 
             _db.Players.Add(player);
@@ -127,7 +127,8 @@ public class RoomsController : ControllerBase
             {
                 playerId = player.Id,
                 roomCode = lobbyCode,
-                roomId = room.Id
+                roomId = room.Id,
+                token = player.Token
             });
         }
         catch (Exception ex)
@@ -137,7 +138,7 @@ public class RoomsController : ControllerBase
         }
     }
 
-    public record CreateRequest(string name, int maxPlayerCount);
+    public record CreateRequest(string name, int maxPlayerCount, string password);
 
     [HttpGet("{code}/getPlayerInfo")]
     public async Task<IActionResult> GetPlayerInfo(string code)
@@ -194,6 +195,12 @@ public class RoomsController : ControllerBase
                 return ApiResponse.UserError("Room not found");
             }
 
+            var isLeader = room.Players.Any(p => p.Id == _tenant.PlayerId && p.IsLobbyLeader);
+            if (!isLeader)
+            {
+                return ApiResponse.UserError("Only the lobby leader can start the game");
+            }
+
             try
             {
                 room.Start();
@@ -217,7 +224,7 @@ public class RoomsController : ControllerBase
     }
 
     [HttpGet("{code}/objectives")]
-    public async Task<IActionResult> GetObjectives(string code, [FromQuery] int playerId)
+    public async Task<IActionResult> GetObjectives(string code)
     {
         try
         {
@@ -229,7 +236,7 @@ public class RoomsController : ControllerBase
             }
 
             var objectives = await _db.PlayerObjectives
-                .Where(o => o.PlayerId == playerId && o.Room!.Code == code.ToUpper())
+                .Where(o => o.PlayerId == _tenant.PlayerId && o.Room!.Code == code.ToUpper())
                 .Select(o => new
                 {
                     id = o.Id,
@@ -252,7 +259,7 @@ public class RoomsController : ControllerBase
         try
         {
             var objectives = await _db.PlayerObjectives
-            .Where(o => o.PlayerId == req.playerId && o.Room!.Code == code.ToUpper())
+            .Where(o => o.PlayerId == _tenant.PlayerId && o.Room!.Code == code.ToUpper())
             .ToListAsync();
 
             var chosenObjective = objectives.FirstOrDefault(o => o.Id == req.objectiveId);
@@ -274,5 +281,5 @@ public class RoomsController : ControllerBase
         }
         
     }
-    public record SelectObjectiveRequest(int playerId, int objectiveId);
+    public record SelectObjectiveRequest(int objectiveId);
 }

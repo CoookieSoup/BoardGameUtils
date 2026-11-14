@@ -17,6 +17,14 @@
     z-index: 10;
 }
 
+.objective-card.chosen {
+    cursor: default;
+}
+
+.objective-card.chosen:hover {
+    transform: none;
+}
+
 .objective-frame {
     width: 100%;
     display: block;
