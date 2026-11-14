@@ -4,6 +4,7 @@ public class Room
 {
     private const int MinPlayerCount = 2;
     private const int MaxPlayerCount = 5;
+    private const int MaxMessageLength = 500;
 
     public int TenantId { get; set; }
     public Tenant? Tenant { get; set; }
@@ -18,6 +19,7 @@ public class Room
     public int MaxPlayers { get; private set; }
 
     public List<PlayerObjective> Objectives { get; set; } = new();
+    public List<ChatMessage> Messages { get; set; } = new();
 
     public Player AddPlayer(string nickname)
     {
@@ -38,6 +40,38 @@ public class Room
         );
         Players.Add(player);
         return player;
+    }
+
+    public ChatMessage AddMessage(int playerId, string? text, int? recipientId)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            throw new InvalidOperationException("Message cannot be empty");
+        }
+        if (text.Length > MaxMessageLength)
+        {
+            throw new InvalidOperationException($"Message cannot be longer than {MaxMessageLength} characters");
+        }
+        if (!Players.Any(p => p.Id == playerId))
+        {
+            throw new InvalidOperationException("Player is not in this room");
+        }
+        if (recipientId != null && !Players.Any(p => p.Id == recipientId))
+        {
+            throw new InvalidOperationException("Recipient is not in this room");
+        }
+
+        var message = new ChatMessage
+        {
+            Text = text.Trim(),
+            SentAt = DateTime.UtcNow,
+            TenantId = TenantId,
+            RoomId = Id,
+            PlayerId = playerId,
+            RecipientId = recipientId
+        };
+        Messages.Add(message);
+        return message;
     }
 
     public void Start()

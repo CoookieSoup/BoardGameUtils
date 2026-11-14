@@ -14,11 +14,13 @@ public class AppDbContext : DbContext
     public DbSet<Room> Rooms => Set<Room>();
     public DbSet<Player> Players => Set<Player>();
     public DbSet<PlayerObjective> PlayerObjectives => Set<PlayerObjective>();
+    public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
         b.Entity<Room>().HasQueryFilter(r => r.TenantId == _tenant.TenantId);
         b.Entity<Player>().HasQueryFilter(p => p.TenantId == _tenant.TenantId);
         b.Entity<PlayerObjective>().HasQueryFilter(o => o.TenantId == _tenant.TenantId);
+        b.Entity<ChatMessage>().HasQueryFilter(m => m.TenantId == _tenant.TenantId);
     }
 }

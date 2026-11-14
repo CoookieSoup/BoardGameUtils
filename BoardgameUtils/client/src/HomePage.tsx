@@ -22,6 +22,7 @@ function Home() {
     const data = isCreate ? await createRoom(name, maxPlayerCount, password) : await joinRoom(roomCode, name, password);
 
     sessionStorage.setItem("roomId", String(data.roomId));
+    sessionStorage.setItem("playerId", String(data.playerId));
     sessionStorage.setItem("isLobbyLeader", String(isCreate));
     sessionStorage.setItem("token", data.token);
     sessionStorage.setItem("roomPassword", password);

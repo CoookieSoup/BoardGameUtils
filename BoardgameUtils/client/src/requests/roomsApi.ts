@@ -17,11 +17,20 @@ export type JoinCreateRoomResponse = {
 };
 
 export type PlayerInfoResponse = {
+    id: number;
     nickname: string;
     objective?: {
         title: string;
         type: number;
     };
+};
+
+export type ChatMessageResponse = {
+    id: number;
+    senderNickname: string;
+    text: string;
+    sentAt: string;
+    recipientNickname: string | null;
 };
 
 export const apiRequest = async <T>(
@@ -110,5 +119,22 @@ export const selectObjective = (code: string, objectiveId: number) => {
             body: JSON.stringify({ objectiveId }),
         },
         "Objective selected successfully!"
+    );
+};
+
+export const loadMessages = (code: string) => {
+    return apiRequest<ChatMessageResponse[]>(
+        `${API}/api/rooms/${code}/messages`
+    );
+};
+
+export const sendMessage = (code: string, text: string, recipientId: number | null) => {
+    return apiRequest<object>(
+        `${API}/api/rooms/${code}/messages`,
+        {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text, recipientId }),
+        }
     );
 };

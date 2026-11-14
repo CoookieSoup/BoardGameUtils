@@ -1,3 +1,4 @@
+using System.Threading.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Server.Hubs;
 using Server.Models;
@@ -20,6 +21,27 @@ builder.Services.AddScoped<TenantContext>(sp =>
 builder.Services.AddDbContext<AppDbContext>(o => o.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 builder.Services.AddSignalR();
 builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins("http://localhost:5173").AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
+builder.Services.AddRateLimiter(o =>
+{
+    o.AddPolicy("join", context => RateLimitPartition.GetFixedWindowLimiter
+    (
+        partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        factory: _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 5,
+            Window = TimeSpan.FromMinutes(1)
+        }
+    ));
+    o.OnRejected = async (rejected, token) =>
+    {
+        rejected.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        await rejected.HttpContext.Response.WriteAsJsonAsync(new
+        {
+            success = false,
+            message = "Too many join attempts, try again in a minute"
+        }, token);
+    };
+});
 
 var app = builder.Build();
 
@@ -89,6 +111,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors();
+app.UseRateLimiter();
 
 app.Use(async (context, next) =>
 {

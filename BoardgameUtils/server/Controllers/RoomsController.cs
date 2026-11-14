@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.SignalR;
 using Server.Hubs;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +24,7 @@ public class RoomsController : ControllerBase
     }
 
     [HttpPost("{code}/join")]
+    [EnableRateLimiting("join")]
     public async Task<IActionResult> Join(string code, JoinRequest req)
     {
         if (string.IsNullOrWhiteSpace(req.name))
@@ -161,6 +163,7 @@ public class RoomsController : ControllerBase
                     var chosen = p.Objectives.FirstOrDefault(o => o.IsChosen);
                     return new
                     {
+                        id = p.Id,
                         nickname = p.Nickname,
                         objective = chosen == null ? null : new
                         {
@@ -282,4 +285,88 @@ public class RoomsController : ControllerBase
         
     }
     public record SelectObjectiveRequest(int objectiveId);
+
+    [HttpPost("{code}/messages")]
+    public async Task<IActionResult> SendMessage(string code, SendMessageRequest req)
+    {
+        try
+        {
+            var room = await _db.Rooms
+                .Include(r => r.Players)
+                .FirstOrDefaultAsync(r => r.Code == code.ToUpper());
+
+            if (room == null)
+            {
+                return ApiResponse.UserError("Room not found");
+            }
+
+            ChatMessage message;
+            try
+            {
+                message = room.AddMessage(_tenant.PlayerId ?? 0, req.text, req.recipientId);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return ApiResponse.UserError(ex.Message);
+            }
+
+            await _db.SaveChangesAsync();
+
+            if (message.RecipientId == null)
+            {
+                await _hub.Clients.Group(room.Id.ToString()).SendAsync("ChatChanged");
+            }
+            else
+            {
+                await _hub.Clients.Group($"player_{message.PlayerId}").SendAsync("ChatChanged");
+                await _hub.Clients.Group($"player_{message.RecipientId}").SendAsync("ChatChanged");
+            }
+
+            return ApiResponse.Success(new { });
+        }
+        catch (Exception ex)
+        {
+            return ApiResponse.ServerError("Failed to send message", ex);
+        }
+    }
+
+    public record SendMessageRequest(string? text, int? recipientId);
+
+    [HttpGet("{code}/messages")]
+    public async Task<IActionResult> GetMessages(string code)
+    {
+        try
+        {
+            var roomExists = await _db.Rooms.AnyAsync(r => r.Code == code.ToUpper());
+
+            if (!roomExists)
+            {
+                return ApiResponse.UserError("Room not found");
+            }
+
+            var playerId = _tenant.PlayerId;
+            var latestMessages = await _db.ChatMessages
+                .Where(m => m.Room!.Code == code.ToUpper())
+                .Where(m => m.RecipientId == null || m.PlayerId == playerId || m.RecipientId == playerId)
+                .OrderByDescending(m => m.Id)
+                .Take(100)
+                .Select(m => new
+                {
+                    id = m.Id,
+                    senderNickname = m.Player!.Nickname,
+                    text = m.Text,
+                    sentAt = m.SentAt,
+                    recipientNickname = m.Recipient == null ? null : m.Recipient.Nickname
+                })
+                .ToListAsync();
+
+            latestMessages.Reverse();
+
+            return ApiResponse.Success(latestMessages);
+        }
+        catch (Exception ex)
+        {
+            return ApiResponse.ServerError("Failed to load messages", ex);
+        }
+    }
 }

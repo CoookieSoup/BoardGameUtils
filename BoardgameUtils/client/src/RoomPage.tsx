@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import './App.css';
+import Chat from './components/Chat';
 import objectiveImage from './images/nemesisObjectiveTemplate.png';
 import type { PlayerInfoResponse } from './requests/roomsApi';
 import { loadObjectives, loadRoomPlayerInfo, selectObjective, startGame } from './requests/roomsApi';
@@ -15,6 +16,7 @@ function Room() {
   const [objectives, setObjectives] = useState<NemesisPlayerObjective[]>([]);
   const [hasStarted, setHasStarted] = useState(false);
   const roomId = Number(sessionStorage.getItem("roomId"));
+  const playerId = Number(sessionStorage.getItem("playerId"));
   const isLobbyLeader = sessionStorage.getItem("isLobbyLeader") === "true";
   const code = useParams().code || "";
   const password = sessionStorage.getItem("roomPassword");
@@ -73,6 +75,7 @@ function Room() {
             </div>
         ))}
       </div>
+      {roomId > 0 && <Chat code={code} playerId={playerId} players={players} />}
     </div>
   );
 }
