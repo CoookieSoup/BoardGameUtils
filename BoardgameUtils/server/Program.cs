@@ -20,7 +20,8 @@ builder.Services.AddScoped<TenantContext>(sp =>
 });
 builder.Services.AddDbContext<AppDbContext>(o => o.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 builder.Services.AddSignalR();
-builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins("http://localhost:5173").AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
+var clientOrigin = builder.Configuration["ClientOrigin"] ?? "http://localhost:5173";
+builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins(clientOrigin).AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
 builder.Services.AddRateLimiter(o =>
 {
     o.AddPolicy("join", context => RateLimitPartition.GetFixedWindowLimiter

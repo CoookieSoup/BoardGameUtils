@@ -1,7 +1,7 @@
 import toast from "react-hot-toast";
 import type { NemesisPlayerObjective } from "../types/nemesisTypes";
 
-const API = "http://localhost:5018";
+const API = import.meta.env.VITE_API_URL ?? "http://localhost:5018";
 
 type ApiResponse<T> = {
     success: boolean;

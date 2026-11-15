@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: boardgameutils
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d boardgameutils"]
+      interval: 5s
+      retries: 10
+
+  server:
+    build:
+      context: ./server
+      target: final
+    environment:
+      ConnectionStrings__Default: Host=db;Port=5432;Database=boardgameutils;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      ClientOrigin: ${CLIENT_ORIGIN}
+    ports:
+      - 5018:8080
+    depends_on:
+      db:
+        condition: service_healthy
+
+  client:
+    build:
+      context: ./client
+      target: final
+      args:
+        VITE_API_URL: ${API_URL}
+    ports:
+      - 5173:5173
+    depends_on:
+      - server
+
+volumes:
+  db-data:

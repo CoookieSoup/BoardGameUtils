@@ -1,6 +1,6 @@
 import * as signalR from "@microsoft/signalr";
 
-const API = "http://localhost:5018";
+const API = import.meta.env.VITE_API_URL ?? "http://localhost:5018";
 
 export const connection = new signalR.HubConnectionBuilder()
   .withUrl(`${API}/hubs/lobby`, {
