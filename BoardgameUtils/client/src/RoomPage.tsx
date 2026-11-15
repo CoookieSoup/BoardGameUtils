@@ -1,11 +1,12 @@
 
 import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useParams } from 'react-router-dom';
 import './App.css';
 import Chat from './components/Chat';
 import objectiveImage from './images/nemesisObjectiveTemplate.png';
 import type { PlayerInfoResponse } from './requests/roomsApi';
-import { loadObjectives, loadRoomPlayerInfo, selectObjective, startGame } from './requests/roomsApi';
+import { loadObjectives, loadRoomPlayerInfo, revealObjectives, selectObjective, startGame } from './requests/roomsApi';
 import { connection, connectToRoom, joinPlayerGroup } from "./signalr";
 import './styling/objectiveCard.css';
 import type { NemesisPlayerObjective } from './types/nemesisTypes';
@@ -21,6 +22,7 @@ function Room() {
   const code = useParams().code || "";
   const password = sessionStorage.getItem("roomPassword");
   const hasChosen = objectives.length === 1;
+  const isRevealed = players.some(player => player.id !== playerId && player.objective);
 
   useEffect(() => {
     if (!roomId) return;
@@ -50,15 +52,35 @@ function Room() {
   }, [roomId]);
 
   return (
-    <div>
-      {password && !hasStarted && (
-        <p>Room code: <b>{code}</b> · Password: <b>{password}</b></p>
-      )}
-      {players.map(player => (
-        <div>{player.nickname} {player.objective?.title}</div>
-      ))}
-      {isLobbyLeader && !hasStarted && (
-        <button onClick={() => startGame(code)}>Start Game</button>
+    <div className="page">
+      <h1 className="title">{players.find(player => player.isLobbyLeader)?.nickname}'s Room</h1>
+      <div className="room-layout">
+      <div className="room-main">
+      <div className="panel">
+        {password && !hasStarted && (
+          <p className="room-info">Room code: <b className="copyable" title="Click to copy" onClick={async () => {
+            await navigator.clipboard.writeText(code);
+            toast.success("Room code copied");
+          }}>{code}</b> · Password: <b>{password}</b></p>
+        )}
+        <h2>Players</h2>
+        <ul className="player-list">
+          {players.map(player => (
+            <li key={player.id}>
+              <span>{player.nickname}</span>
+              <span className="player-objective">{player.objective?.title}</span>
+            </li>
+          ))}
+        </ul>
+        {isLobbyLeader && !hasStarted && (
+          <button onClick={() => startGame(code)}>Start Game</button>
+        )}
+        {isLobbyLeader && hasStarted && !isRevealed && (
+          <button onClick={() => revealObjectives(code)}>Reveal Objectives</button>
+        )}
+      </div>
+      {objectives.length > 0 && (
+        <h2 className="section-title">{hasChosen ? "Your Objective" : "Choose Your Objective"}</h2>
       )}
       <div className="objectives-container">
         {objectives.map((objective, index) => (
@@ -75,7 +97,9 @@ function Room() {
             </div>
         ))}
       </div>
+      </div>
       {roomId > 0 && <Chat code={code} playerId={playerId} players={players} />}
+      </div>
     </div>
   );
 }

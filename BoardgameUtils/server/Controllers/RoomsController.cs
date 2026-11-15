@@ -160,11 +160,13 @@ public class RoomsController : ControllerBase
             var playerList = currentRoom.Players
                 .Select(p =>
                 {
-                    var chosen = p.Objectives.FirstOrDefault(o => o.IsChosen);
+                    var canSee = currentRoom.ObjectivesRevealed || p.Id == _tenant.PlayerId;
+                    var chosen = canSee ? p.Objectives.FirstOrDefault(o => o.IsChosen) : null;
                     return new
                     {
                         id = p.Id,
                         nickname = p.Nickname,
+                        isLobbyLeader = p.IsLobbyLeader,
                         objective = chosen == null ? null : new
                         {
                             id = chosen.Id,
@@ -223,6 +225,46 @@ public class RoomsController : ControllerBase
         catch (Exception ex)
         {
             return ApiResponse.ServerError("Failed to start game", ex);
+        }
+    }
+
+    [HttpPost("{code}/revealObjectives")]
+    public async Task<IActionResult> RevealObjectives(string code)
+    {
+        try
+        {
+            var room = await _db.Rooms
+                .Include(r => r.Players)
+                .FirstOrDefaultAsync(r => r.Code == code.ToUpper());
+
+            if (room == null)
+            {
+                return ApiResponse.UserError("Room not found");
+            }
+
+            var isLeader = room.Players.Any(p => p.Id == _tenant.PlayerId && p.IsLobbyLeader);
+            if (!isLeader)
+            {
+                return ApiResponse.UserError("Only the lobby leader can reveal objectives");
+            }
+
+            try
+            {
+                room.RevealObjectives();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return ApiResponse.UserError(ex.Message);
+            }
+
+            await _db.SaveChangesAsync();
+            await _hub.Clients.Group(room.Id.ToString()).SendAsync("PlayersChanged");
+
+            return ApiResponse.Success(new { });
+        }
+        catch (Exception ex)
+        {
+            return ApiResponse.ServerError("Failed to reveal objectives", ex);
         }
     }
 

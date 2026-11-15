@@ -31,8 +31,11 @@ function Home() {
   }
 
   return (
-    <>
-      <form onSubmit={(e) => handleRoom(e, false)}>
+    <div className="page">
+      <h1 className="title">Board Game Utils</h1>
+      <div className="home-forms">
+      <form className="panel" onSubmit={(e) => handleRoom(e, false)}>
+        <h2>Join a Room</h2>
         <TextInput
           name="name"
           placeholder="Enter your name"
@@ -47,7 +50,8 @@ function Home() {
         />
         <button type="submit">Join Room</button>
       </form>
-      <form onSubmit={(e) => handleRoom(e, true)}>
+      <form className="panel" onSubmit={(e) => handleRoom(e, true)}>
+        <h2>Create a Room</h2>
         <TextInput
           name="name"
           placeholder="Enter your name"
@@ -64,7 +68,8 @@ function Home() {
         />
         <button type="submit">Create Room</button>
       </form>
-    </>
+      </div>
+    </div>
   )
 }
 

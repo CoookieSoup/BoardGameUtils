@@ -19,6 +19,7 @@ export type JoinCreateRoomResponse = {
 export type PlayerInfoResponse = {
     id: number;
     nickname: string;
+    isLobbyLeader: boolean;
     objective?: {
         title: string;
         type: number;
@@ -110,7 +111,14 @@ export const startGame = (code: string) => {
     );
 };
 
-export const selectObjective = (code: string, objectiveId: number) => {
+export const revealObjectives = (code: string) => {
+    return apiRequest<object>(
+        `${API}/api/rooms/${code}/revealObjectives`,
+        { method: "POST" }
+    );
+};
+
+export const selectObjective =(code: string, objectiveId: number) => {
     return apiRequest<PlayerInfoResponse[]>(
         `${API}/api/rooms/${code}/selectObjective`,
         {

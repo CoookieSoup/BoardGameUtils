@@ -14,6 +14,7 @@ public class Room
     public string Password { get; private set; } = "";
     public string GameType { get; set; } = "";
     public RoomState State { get; private set; } = RoomState.Lobby;
+    public bool ObjectivesRevealed { get; private set; }
 
     public List<Player> Players { get; private set; } = new();
     public int MaxPlayers { get; private set; }
@@ -86,6 +87,16 @@ public class Room
         }
 
         State = RoomState.Playing;
+    }
+
+    public void RevealObjectives()
+    {
+        if (State != RoomState.Playing)
+        {
+            throw new InvalidOperationException("Game has not started yet.");
+        }
+
+        ObjectivesRevealed = true;
     }
 
     public static Room Create(string code, string gameType, int maxPlayers, string password)

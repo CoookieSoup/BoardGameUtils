@@ -12,7 +12,7 @@ type ChatProps = {
 
 function Chat({ code, playerId, players }: ChatProps) {
   const [messages, setMessages] = useState<ChatMessageResponse[]>([]);
-  const [recipientId, setRecipientId] = useState("");
+  const [recipientId, setRecipientId] = useState(0);
 
   useEffect(() => {
     const refresh = async () => {
@@ -34,28 +34,55 @@ function Chat({ code, playerId, players }: ChatProps) {
     const form = e.currentTarget;
     const text = String(new FormData(form).get("text") ?? "");
 
-    await sendMessage(code, text, recipientId ? Number(recipientId) : null);
+    await sendMessage(code, text, recipientId || null);
     form.reset();
   };
 
+  const myNickname = players.find(player => player.id === playerId)?.nickname;
+  const tabs = [
+    { id: 0, nickname: "Everyone" },
+    ...players.filter(player => player.id !== playerId),
+  ];
+
+  const openTab = tabs.find(tab => tab.id === recipientId) ?? tabs[0];
+
+  const visibleMessages = messages.filter(message =>
+    openTab.id === 0
+      ? message.recipientNickname === null
+      : (message.senderNickname === openTab.nickname && message.recipientNickname === myNickname)
+        || (message.senderNickname === myNickname && message.recipientNickname === openTab.nickname)
+  );
+
   return (
-    <div>
-      {messages.map(message => (
-        <div key={message.id}>
-          {message.senderNickname}
-          {message.recipientNickname && ` to ${message.recipientNickname} (private)`}: {message.text}
-        </div>
-      ))}
-      <form onSubmit={handleSend}>
-        <select value={recipientId} onChange={(e) => setRecipientId(e.target.value)}>
-          <option value="">Everyone</option>
-          {players.filter(player => player.id !== playerId).map(player => (
-            <option key={player.id} value={player.id}>{player.nickname}</option>
-          ))}
-        </select>
+    <div className="panel chat">
+      <h2>Table Talk</h2>
+      <div className="chat-tabs">
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            className={tab === openTab ? "chat-tab active" : "chat-tab"}
+            onClick={() => setRecipientId(tab.id)}
+          >
+            {tab.nickname}
+          </button>
+        ))}
+      </div>
+      <div className="chat-messages">
+        {visibleMessages.map(message => (
+          <div key={message.id} className={message.senderNickname === myNickname ? "message mine" : "message"}>
+            <div className="message-meta">
+              <b>{message.senderNickname}</b>
+              {" · "}
+              {new Date(message.sentAt).toTimeString().slice(0, 5)}
+            </div>
+            <div>{message.text}</div>
+          </div>
+        ))}
+      </div>
+      <form className="chat-form" onSubmit={handleSend}>
         <TextInput
           name="text"
-          placeholder="Write a message"
+          placeholder={`Message ${openTab.nickname}`}
         />
         <button type="submit">Send</button>
       </form>

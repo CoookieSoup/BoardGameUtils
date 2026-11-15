@@ -155,6 +155,9 @@ namespace Server.Migrations
                     b.Property<int>("MaxPlayers")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("ObjectivesRevealed")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasColumnType("text");
