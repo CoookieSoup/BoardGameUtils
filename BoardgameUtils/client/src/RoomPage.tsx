@@ -36,7 +36,7 @@ function Room() {
 
     const refreshObjectives = async () => {
       const data = await loadObjectives(code);
-      setHasStarted(true);
+      setHasStarted(data.length > 0);
       setObjectives(data);
     };
 
@@ -45,6 +45,7 @@ function Room() {
 
     connectToRoom(roomId)
       .then(refresh)
+      .then(refreshObjectives)
       .then(() => joinPlayerGroup());
 
     return () => {
