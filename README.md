@@ -1,5 +1,7 @@
 # BoardGameUtils
 
+Architecture document: [docs/architektura.md](docs/architektura.md)
+
 ## Requirements
 
 | Tool | Version |
@@ -59,7 +61,7 @@ npm test
 
 ## Reliability trial
 
-The quality attribute is reliability: objectives must always be dealt by the rules. It is checked by the `Deal_` tests that `npm test` runs. The latest results are in [BoardgameUtils/docs/reliability-results.txt](BoardgameUtils/docs/reliability-results.txt).
+The quality attribute is reliability: objectives must always be dealt by the rules. It is checked by the `Deal_` tests that `npm test` runs. The latest results are in [docs/reliability-results.txt](docs/reliability-results.txt).
 
 | Success criterion | Trial | Latest result |
 |---|---|---|
