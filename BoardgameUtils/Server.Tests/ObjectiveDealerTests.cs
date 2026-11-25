@@ -33,16 +33,15 @@ public class ObjectiveDealerTests
 
     private static Room MakeRoom(int roomId, int playerCount)
     {
-        var room = new Room
+        var room = Room.Create
         (
             code: "ABCDE",
             gameType: "Nemesis",
-            maxPlayers: 5
-        )
-        {
-            Id = roomId,
-            TenantId = 1
-        };
+            maxPlayers: 5,
+            password: "secret"
+        );
+        room.Id = roomId;
+        room.TenantId = 1;
 
         for (int i = 1; i <= playerCount; i++)
         {
@@ -124,15 +123,15 @@ public class ObjectiveDealerTests
         var dbName = Guid.NewGuid().ToString();
         await using (var seed = DbFor(dbName, tenantId: 2))
         {
-            seed.Rooms.Add(new Room
+            var roomB = Room.Create
             (
                 code: "BBBBB",
                 gameType: "Nemesis",
-                maxPlayers: 5
-            )
-            {
-                TenantId = 2
-            });
+                maxPlayers: 5,
+                password: "secret"
+            );
+            roomB.Tenant!.Id = 2;
+            seed.Rooms.Add(roomB);
             await seed.SaveChangesAsync();
         }
 

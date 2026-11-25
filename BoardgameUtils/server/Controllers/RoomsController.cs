@@ -27,10 +27,6 @@ public class RoomsController : ControllerBase
     [EnableRateLimiting("join")]
     public async Task<IActionResult> Join(string code, JoinRequest req)
     {
-        if (string.IsNullOrWhiteSpace(req.name))
-        {
-            return ApiResponse.UserError("Player name is required");
-        }
         if (string.IsNullOrWhiteSpace(req.password))
         {
             return ApiResponse.UserError("Room password is required");
@@ -81,16 +77,12 @@ public class RoomsController : ControllerBase
     [HttpPost("create")]
     public async Task<IActionResult> Create(CreateRequest req)
     {
-        if (string.IsNullOrWhiteSpace(req.name))
-        {
-            return ApiResponse.UserError("Player name is required");
-        }
-
         const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
         var lobbyCode = new string(Enumerable.Range(0, 5)
             .Select(_ => chars[Random.Shared.Next(chars.Length)]).ToArray());
 
         Room room;
+        Player player;
         try
         {
             room = Room.Create(
@@ -98,6 +90,13 @@ public class RoomsController : ControllerBase
                 gameType: "Nemesis",
                 maxPlayers: req.maxPlayerCount,
                 password: req.password
+            );
+            player = new Player
+            (
+                nickname: req.name,
+                roomId: 0,
+                tenantId: 0,
+                isLobbyLeader: true
             );
         }
         catch (InvalidOperationException ex)
@@ -112,14 +111,8 @@ public class RoomsController : ControllerBase
             _db.Rooms.Add(room);
             await _db.SaveChangesAsync();
 
-            var player = new Player
-            (
-                nickname: req.name,
-                isLobbyLeader: true,
-                roomId: room.Id,
-                tenantId: room.TenantId
-            );
-
+            player.RoomId = room.Id;
+            player.TenantId = room.TenantId;
             _db.Players.Add(player);
             await _db.SaveChangesAsync();
 
@@ -302,21 +295,30 @@ public class RoomsController : ControllerBase
     {
         try
         {
-            var objectives = await _db.PlayerObjectives
-            .Where(o => o.PlayerId == _tenant.PlayerId && o.Room!.Code == code.ToUpper())
-            .ToListAsync();
+            var player = await _db.Players
+                .Include(p => p.Objectives)
+                .FirstOrDefaultAsync(p => p.Id == _tenant.PlayerId && p.Room!.Code == code.ToUpper());
 
-            var chosenObjective = objectives.FirstOrDefault(o => o.Id == req.objectiveId);
-            if (chosenObjective == null)
+            if (player == null)
             {
-                return ApiResponse.UserError("Objective not found");
+                return ApiResponse.UserError("Player not found");
             }
 
-            chosenObjective.IsChosen = true;
-            _db.PlayerObjectives.RemoveRange(objectives.Where(o => o != chosenObjective));
+            List<PlayerObjective> discarded;
+            try
+            {
+                discarded = player.ChooseObjective(req.objectiveId);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return ApiResponse.UserError(ex.Message);
+            }
+
+            _db.PlayerObjectives.RemoveRange(discarded);
             await _db.SaveChangesAsync();
 
-            await _hub.Clients.Group(chosenObjective.RoomId.ToString()).SendAsync("PlayersChanged");
+            await _hub.Clients.Group(player.RoomId.ToString()).SendAsync("PlayersChanged");
+
             return ApiResponse.Success(new { });
         }
         catch (Exception ex)

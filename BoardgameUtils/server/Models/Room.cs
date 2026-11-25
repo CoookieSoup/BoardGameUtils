@@ -122,7 +122,7 @@ public class Room
         };
     }
 
-    public Room(string code, string gameType, int maxPlayers)
+    private Room(string code, string gameType, int maxPlayers)
     {
         Code = code;
         GameType = gameType;
