@@ -60,25 +60,31 @@ public class ObjectiveDealerTests
         return room;
     }
 
-    [Fact]
-    public void Deal_FourPlayers_EachGetsOneCoopAndOneSelfish_AllDistinct()
+    [Theory]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(5)]
+    public void Deal_ManyTimes_EachGetsOneCoopAndOneSelfish_AllDistinct_AllAllowed(int playerCount)
     {
-        var room = MakeRoom(roomId: 1, playerCount: 4);
+        const int Rounds = 1000;
+        var room = MakeRoom(roomId: 1, playerCount: playerCount);
 
-        var result = ObjectiveDealer.Deal(room);
-
-        Assert.Equal(8, result.Count);
-        Assert.Equal(8, result.Select(o => o.Title).Distinct().Count());
-
-        foreach (var player in room.Players)
+        for (int round = 0; round < Rounds; round++)
         {
-            var playerObjectives = result.Where(o => o.PlayerId == player.Id);
-            Assert.Single(playerObjectives, o => o.Type == Cooperative);
-            Assert.Single(playerObjectives, o => o.Type == Selfish);
-        }
+            var result = ObjectiveDealer.Deal(room);
 
-        Assert.DoesNotContain(result, o => o.Title == "Kad kiekvienas kambarys būtų išieškotas");
-        Assert.DoesNotContain(result, o => o.Title == "Žaidėjas 5 turi neišgyventi");
+            Assert.Equal(playerCount * 2, result.Count);
+            Assert.Equal(playerCount * 2, result.Select(o => o.Title).Distinct().Count());
+            Assert.All(result, o => Assert.True(o.MinPlayers <= playerCount));
+
+            foreach (var player in room.Players)
+            {
+                var playerObjectives = result.Where(o => o.PlayerId == player.Id);
+                Assert.Single(playerObjectives, o => o.Type == Cooperative);
+                Assert.Single(playerObjectives, o => o.Type == Selfish);
+            }
+        }
     }
 
     [Fact]
@@ -105,9 +111,9 @@ public class ObjectiveDealerTests
             new("S6", Selfish, 2), new("S7", Selfish, 3),
         };
 
-        var ex = Assert.Throws<ArgumentException>(() => ObjectiveDealer.Deal(room, reducedCatalog));
+        var ex = Assert.Throws<InvalidOperationException>(() => ObjectiveDealer.Deal(room, reducedCatalog));
 
-        Assert.Equal("Not enough objectives.", ex.Message);
+        Assert.Equal("Not enough selfish objectives: need 3, have 2", ex.Message);
         Assert.Equal(RoomState.Lobby, room.State);
         Assert.All(room.Players, p => Assert.Empty(p.Objectives));
     }

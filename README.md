@@ -57,6 +57,15 @@ The client opens at http://localhost:5173 and the API at http://localhost:5018. 
 npm test
 ```
 
+## Reliability trial
+
+The quality attribute is reliability: objectives must always be dealt by the rules. It is checked by the `Deal_` tests that `npm test` runs. The latest results are in [BoardgameUtils/docs/reliability-results.txt](BoardgameUtils/docs/reliability-results.txt).
+
+| Success criterion | Trial | Latest result |
+|---|---|---|
+| Every player gets exactly one cooperative and one selfish objective, no objective is dealt twice, and no objective needs more players than are in the room | Deal 1000 times each for 2, 3, 4 and 5 players and check every deal | 4000 deals, all passed |
+| When there are not enough objectives, nothing is dealt and the error says what is missing | 3 players, only 2 eligible selfish objectives | Error "Not enough selfish objectives: need 3, have 2", nothing dealt |
+
 ## Configuration
 
 | Setting | Where | Meaning |
@@ -108,4 +117,11 @@ Run these in Git Bash and replace `TOKEN` with the token from step 1.
 
    ```
    curl -H "Authorization: Bearer TOKEN" http://localhost:5018/api/rooms/BBBBBB/getPlayerInfo
+   ```
+
+4. Try to change room `BBBBBB` with the same token by sending a message and starting its game. Both return `"Room not found"` and nothing changes in room `BBBBBB`:
+
+   ```
+   curl -X POST -H "Authorization: Bearer TOKEN" -H "Content-Type: application/json" -d "{\"text\":\"hi\"}" http://localhost:5018/api/rooms/BBBBBB/messages
+   curl -X POST -H "Authorization: Bearer TOKEN" http://localhost:5018/api/rooms/BBBBBB/start
    ```

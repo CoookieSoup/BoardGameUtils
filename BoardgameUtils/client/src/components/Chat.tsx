@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { ChatMessageResponse, PlayerInfoResponse } from '../requests/roomsApi';
 import { loadMessages, sendMessage } from '../requests/roomsApi';
 import { connection } from "../signalr";
+import AsyncForm from './AsyncForm';
 import TextInput from './inputs';
 
 type ChatProps = {
@@ -28,10 +29,7 @@ function Chat({ code, playerId, players }: ChatProps) {
     };
   }, [code]);
 
-  const handleSend = async (e: React.SubmitEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    const form = e.currentTarget;
+  const handleSend = async (form: HTMLFormElement) => {
     const text = String(new FormData(form).get("text") ?? "");
 
     await sendMessage(code, text, recipientId || null);
@@ -79,13 +77,12 @@ function Chat({ code, playerId, players }: ChatProps) {
           </div>
         ))}
       </div>
-      <form className="chat-form" onSubmit={handleSend}>
+      <AsyncForm className="chat-form" submitLabel="Send" onSubmit={handleSend}>
         <TextInput
           name="text"
           placeholder={`Message ${openTab.nickname}`}
         />
-        <button type="submit">Send</button>
-      </form>
+      </AsyncForm>
     </div>
   );
 }

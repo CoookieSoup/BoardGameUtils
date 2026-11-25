@@ -8,7 +8,7 @@ public static class ObjectiveDealer
         var players = room.Players;
 
         if (players.Count < 2)
-            throw new ArgumentException("At least 2 players are required.");
+            throw new InvalidOperationException("At least 2 players are required.");
 
         var eligible = catalog
             .Where(o => o.MinPlayers <= players.Count)
@@ -24,8 +24,11 @@ public static class ObjectiveDealer
             .OrderBy(_ => Random.Shared.Next())
             .ToList();
 
-        if (coop.Count < players.Count || selfish.Count < players.Count)
-            throw new ArgumentException("Not enough objectives.");
+        if (coop.Count < players.Count)
+            throw new InvalidOperationException($"Not enough cooperative objectives: need {players.Count}, have {coop.Count}");
+
+        if (selfish.Count < players.Count)
+            throw new InvalidOperationException($"Not enough selfish objectives: need {players.Count}, have {selfish.Count}");
 
         var result = new List<PlayerObjective>();
 
@@ -54,6 +57,28 @@ public static class ObjectiveDealer
             });
         }
 
+        Validate(room, result);
         return result;
+    }
+
+    public static void Validate(Room room, List<PlayerObjective> dealt)
+    {
+        var playerCount = room.Players.Count;
+
+        if (dealt.Select(o => o.Title).Distinct().Count() != dealt.Count)
+            throw new InvalidOperationException("Objectives were dealt twice");
+
+        if (dealt.Any(o => o.MinPlayers > playerCount))
+            throw new InvalidOperationException("An objective needs more players than are in the room");
+
+        foreach (var player in room.Players)
+        {
+            var mine = dealt.Where(o => o.PlayerId == player.Id).ToList();
+            var coopCount = mine.Count(o => o.Type == ObjectiveType.Cooperative);
+            var selfishCount = mine.Count(o => o.Type == ObjectiveType.Selfish);
+
+            if (mine.Count != 2 || coopCount != 1 || selfishCount != 1)
+                throw new InvalidOperationException($"Player {player.Nickname} did not get one cooperative and one selfish objective");
+        }
     }
 }

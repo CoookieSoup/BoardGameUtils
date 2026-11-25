@@ -209,15 +209,14 @@ public class RoomsController : ControllerBase
             try
             {
                 room.Start();
+                _db.PlayerObjectives.AddRange(ObjectiveDealer.Deal(room));
+                await _db.SaveChangesAsync();
             }
             catch (InvalidOperationException ex)
             {
                 return ApiResponse.UserError(ex.Message);
             }
 
-            _db.PlayerObjectives.AddRange(ObjectiveDealer.Deal(room));
-
-            await _db.SaveChangesAsync();
             await _hub.Clients.Group(room.Id.ToString()).SendAsync("GameStarted");
 
             return ApiResponse.Success(new { });

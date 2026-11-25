@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useParams } from 'react-router-dom';
 import './App.css';
+import AsyncButton from './components/AsyncButton';
 import Chat from './components/Chat';
 import objectiveImage from './images/nemesisObjectiveTemplate.png';
 import type { PlayerInfoResponse } from './requests/roomsApi';
@@ -16,6 +17,7 @@ function Room() {
   const [players, setPlayers] = useState<PlayerInfoResponse[]>([]);
   const [objectives, setObjectives] = useState<NemesisPlayerObjective[]>([]);
   const [hasStarted, setHasStarted] = useState(false);
+  const [isChoosing, setIsChoosing] = useState(false);
   const roomId = Number(sessionStorage.getItem("roomId"));
   const playerId = Number(sessionStorage.getItem("playerId"));
   const isLobbyLeader = sessionStorage.getItem("isLobbyLeader") === "true";
@@ -73,10 +75,10 @@ function Room() {
           ))}
         </ul>
         {isLobbyLeader && !hasStarted && (
-          <button onClick={() => startGame(code)}>Start Game</button>
+          <AsyncButton onClick={() => startGame(code)}>Start Game</AsyncButton>
         )}
         {isLobbyLeader && hasStarted && !isRevealed && (
-          <button onClick={() => revealObjectives(code)}>Reveal Objectives</button>
+          <AsyncButton onClick={() => revealObjectives(code)}>Reveal Objectives</AsyncButton>
         )}
       </div>
       {objectives.length > 0 && (
@@ -86,9 +88,15 @@ function Room() {
         {objectives.map((objective, index) => (
             <div className={hasChosen ? "objective-card chosen" : "objective-card"} key={index}>
                 <img src={objectiveImage} className="objective-frame" onClick={async () => {
-                  if (hasChosen) return;
-                  await selectObjective(code, objective.id);
-                  setObjectives([objective]);
+                  if (hasChosen || isChoosing) return;
+                  
+                  setIsChoosing(true);
+                  try {
+                    await selectObjective(code, objective.id);
+                    setObjectives([objective]);
+                  } finally {
+                    setIsChoosing(false);
+                  }
                   }}/>
                 <div className="objective-text">
                     <p>{objective.type === ObjectiveType.Cooperative ? "Cooperative" : "Solo"}</p>

@@ -1,15 +1,14 @@
 import { useNavigate } from 'react-router-dom'
 import './App.css'
+import AsyncForm from './components/AsyncForm'
 import TextInput from './components/inputs'
 import { createRoom, joinRoom } from './requests/roomsApi'
 
 function Home() {
   const navigate = useNavigate()
 
-  async function handleRoom(e: React.SubmitEvent<HTMLFormElement>, isCreate: boolean) {
-    e.preventDefault();
-
-    const form = new FormData(e.currentTarget);
+  async function handleRoom(formElement: HTMLFormElement, isCreate: boolean) {
+    const form = new FormData(formElement);
     const name = String(form.get("name") ?? "").trim();
     const password = String(form.get("password") ?? "").trim();
     const roomCode = String(form.get("roomCode") ?? "").trim().toUpperCase();
@@ -34,7 +33,7 @@ function Home() {
     <div className="page">
       <h1 className="title">Board Game Utils</h1>
       <div className="home-forms">
-      <form className="panel" onSubmit={(e) => handleRoom(e, false)}>
+      <AsyncForm className="panel" submitLabel="Join Room" onSubmit={(form) => handleRoom(form, false)}>
         <h2>Join a Room</h2>
         <TextInput
           name="name"
@@ -48,9 +47,8 @@ function Home() {
           name="password"
           placeholder="Enter room password"
         />
-        <button type="submit">Join Room</button>
-      </form>
-      <form className="panel" onSubmit={(e) => handleRoom(e, true)}>
+      </AsyncForm>
+      <AsyncForm className="panel" submitLabel="Create Room" onSubmit={(form) => handleRoom(form, true)}>
         <h2>Create a Room</h2>
         <TextInput
           name="name"
@@ -66,8 +64,7 @@ function Home() {
           name="password"
           placeholder="Choose a room password"
         />
-        <button type="submit">Create Room</button>
-      </form>
+      </AsyncForm>
       </div>
     </div>
   )
